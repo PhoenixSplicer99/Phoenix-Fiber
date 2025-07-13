@@ -1,0 +1,4175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoenix Fiber - Modern Fiber Management</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Add SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #DC2626;
+            --primary-light: #FFB700;
+            --secondary: #1e293b;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #334155;
+            --text-light: #64748b;
+            --success: #10b981;
+            --info: #3b82f6;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius: 0.75rem;
+            --radius-sm: 0.5rem;
+            --radius-lg: 1rem;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--surface-2);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Modern Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 50%, var(--primary-dark) 100%);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Tab Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--surface-3);
+            padding: 0.25rem;
+            border-radius: var(--radius);
+        }
+        
+        .nav-tab {
+            padding: 0.5rem 1.5rem;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .nav-tab:hover {
+            color: var(--text);
+        }
+        
+        .nav-tab.active {
+            background: var(--surface);
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* Main Layout */
+        .main-container {
+            margin-top: 73px;
+            height: calc(100vh - 73px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Content Panels */
+        .content-panel {
+            display: none;
+            height: 100%;
+        }
+        
+        .content-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Data Input Panel */
+        .data-input-panel {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .input-section {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-header {
+            background: var(--surface-2);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .input-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .input-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        /* Excel-like Grid */
+        .grid-toolbar {
+            background: var(--surface);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .grid-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .grid-btn {
+            padding: 0.375rem 0.75rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .grid-btn:hover {
+            background: var(--surface-3);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .grid-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: var(--surface);
+        }
+        
+        .data-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .data-grid th {
+            position: sticky;
+            top: 0;
+            background: var(--surface-3);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            z-index: 10;
+        }
+        
+        .data-grid th.row-number-header {
+            width: 50px;
+            text-align: center;
+            background: var(--surface-2);
+        }
+        
+        .data-grid td {
+            padding: 0;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+        
+        .data-grid tr:hover {
+            background: var(--surface-2);
+        }
+        
+        .data-grid td.row-number {
+            width: 50px;
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--surface-2);
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        
+        .grid-input {
+            width: 100%;
+            height: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            font-size: 0.875rem;
+            font-family: inherit;
+            background: transparent;
+            color: var(--text);
+        }
+        
+        .grid-input:focus {
+            outline: none;
+            background: var(--surface-2);
+            box-shadow: inset 0 0 0 2px var(--primary);
+        }
+        
+        .grid-input.valid {
+            background: #f0fdf4;
+        }
+        
+        .grid-input.error {
+            background: #fef2f2;
+        }
+        
+        /* Detection Status */
+        .detection-status {
+            padding: 1rem;
+            background: var(--surface-2);
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+        
+        .detection-status.show {
+            display: block;
+        }
+        
+        .detection-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(to right, #dbeafe, #e0f2fe);
+            border: 1px solid #60a5fa;
+            border-radius: var(--radius-sm);
+            color: #1e40af;
+        }
+        
+        .detection-icon {
+            font-size: 1.25rem;
+        }
+        
+        .detection-content {
+            flex: 1;
+        }
+        
+        .detection-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detection-description {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .detection-action {
+            padding: 0.5rem 1rem;
+            background: var(--info);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .detection-action:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Map Panel */
+        .map-panel {
+            position: relative;
+            height: 100%;
+        }
+        
+        #networkMap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Floating Panels */
+        .floating-panel {
+            position: absolute;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+            max-width: 90%;
+        }
+        
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .panel-close {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-light);
+        }
+        
+        .panel-close:hover {
+            background: var(--surface-3);
+            color: var(--text);
+        }
+        
+        /* Network Stats Panel */
+        .stats-panel {
+            top: 1.5rem;
+            left: 1.5rem;
+            width: 320px;
+        }
+        
+        .stats-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+        
+        /* Search Panel */
+        .search-panel {
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 320px;
+        }
+        
+        .search-input-wrapper {
+            padding: 1rem;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 1.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+        
+        .search-results {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0 1rem 1rem;
+        }
+        
+        .search-result {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .search-result:hover {
+            background: var(--surface-3);
+            transform: translateX(4px);
+        }
+        
+        .search-result-title {
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        
+        .search-result-details {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+        
+        /* Legend */
+        .legend-panel {
+            bottom: 1.5rem;
+            left: 1.5rem;
+            padding: 1rem;
+        }
+        
+        .legend-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+        
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        /* Map Controls */
+        .map-controls {
+            position: absolute;
+            top: 50%;
+            right: 1.5rem;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .map-control {
+            width: 40px;
+            height: 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+        
+        .map-control:hover {
+            background: var(--surface-2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        /* Splice Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 2rem;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        /* Fiber Grid Visualization */
+        .fiber-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 4px;
+            padding: 1rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+        }
+        
+        .fiber-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .fiber-cell.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary-dark);
+        }
+        
+        .fiber-cell.dead {
+            background: var(--text-light);
+            color: white;
+            opacity: 0.5;
+        }
+        
+        .fiber-cell:hover:not(.dead) {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Process Button */
+        .process-section {
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .process-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .process-btn:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Loading State */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip-content {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--secondary);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tooltip:hover .tooltip-content {
+            opacity: 1;
+        }
+        
+        /* Splicing Document Panel */
+        .splicing-panel {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .splicing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .splice-doc-header {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .splice-doc-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .export-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--info);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .export-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Splice Matrix */
+        .splice-matrix {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .splice-matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .splice-matrix-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .splice-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .splice-table th {
+            background: var(--surface-3);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+        
+        .splice-table td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+        }
+        
+        .splice-table tr:hover {
+            background: var(--surface-2);
+        }
+        
+        .fiber-status {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .fiber-status.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .fiber-status.dead {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Visual Splice Diagram */
+        .splice-diagram {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        
+        .diagram-canvas {
+            width: 100%;
+            height: 600px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            position: relative;
+            overflow: auto;
+        }
+        
+        .cable-representation {
+            position: absolute;
+            display: flex;
+            align-items: center;
+        }
+        
+        .cable-body {
+            height: 40px;
+            background: var(--text);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: white;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        
+        .fiber-bundle {
+            position: absolute;
+            height: 2px;
+            background: var(--primary);
+            transition: all 0.3s;
+        }
+        
+        .fiber-bundle:hover {
+            height: 4px;
+            z-index: 10;
+        }
+        
+        /* Circuit ID Assignment */
+        .circuit-panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .circuit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .circuit-prefix-input {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            width: 200px;
+        }
+        
+        .circuit-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .circuit-item {
+            padding: 0.75rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        
+        .circuit-id {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            background: var(--success);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            transform: translateX(400px);
+            transition: transform 0.3s ease-out;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-icon {
+            font-size: 1.25rem;
+        }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+        
+        .notification-message {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 1rem;
+            }
+            
+            .nav-tabs {
+                font-size: 0.75rem;
+            }
+            
+            .nav-tab {
+                padding: 0.375rem 1rem;
+            }
+            
+            .floating-panel {
+                position: static;
+                margin: 1rem;
+                width: auto !important;
+            }
+            
+            .map-controls {
+                right: 0.5rem;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔥</div>
+                <span>Phoenix Fiber</span>
+            </div>
+            
+            <nav class="nav-tabs">
+                <button class="nav-tab active" onclick="switchTab('input')">
+                    <span>📊 Data Input</span>
+                </button>
+                <button class="nav-tab" onclick="switchTab('map')">
+                    <span>🗺️ Network Map</span>
+                </button>
+                <button class="nav-tab" onclick="switchTab('splicing')">
+                    <span>📄 Splicing Docs</span>
+                </button>
+                <button class="nav-tab" onclick="switchTab('analysis')">
+                    <span>📈 Analysis</span>
+                </button>
+            </nav>
+            
+            <div class="header-actions">
+                <button class="grid-btn" style="background: var(--primary); color: white; border-color: var(--primary);">
+                    <span>💾</span> Save Project
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Data Input Panel -->
+        <div class="content-panel active" id="input-panel">
+            <div class="data-input-panel">
+                <div class="input-grid">
+                    <!-- Cable Data Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">📡 Cable Data</h2>
+                            <p class="input-subtitle">Paste your cable data from QGIS or enter manually</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearCableGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addCableRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                                <button class="grid-btn" onclick="loadCableSample()">
+                                    <span>📋</span> Sample
+                                </button>
+                            </div>
+                            <div class="grid-info">
+                                <span id="cableRowCount">0 rows</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="cableGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>cable_type</th>
+                                        <th>fondid</th>
+                                        <th>size</th>
+                                        <th>cable_ct</th>
+                                        <th style="min-width: 200px;">wkt_geom <span style="font-weight: normal; color: var(--text-light);">(optional)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cableGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="detection-status" id="cableGeoStatus">
+                            <div class="detection-alert">
+                                <span class="detection-icon">🌍</span>
+                                <div class="detection-content">
+                                    <div class="detection-title">Geographic data detected!</div>
+                                    <div class="detection-description">4 cables with location data ready for mapping</div>
+                                </div>
+                                <button class="detection-action" onclick="enableMapping()">
+                                    View on Map
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Splice Data Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">🔌 Splice Points</h2>
+                            <p class="input-subtitle">Paste your splice point data from QGIS or enter manually</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearSpliceGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addSpliceRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                                <button class="grid-btn" onclick="loadSpliceSample()">
+                                    <span>📋</span> Sample
+                                </button>
+                            </div>
+                            <div class="grid-info">
+                                <span id="spliceRowCount">0 rows</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="spliceGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>fondid</th>
+                                        <th>fda</th>
+                                        <th>fsa</th>
+                                        <th>placement</th>
+                                        <th>spec</th>
+                                        <th>ap_type</th>
+                                        <th style="min-width: 200px;">wkt_geom <span style="font-weight: normal; color: var(--text-light);">(optional)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="spliceGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="detection-status" id="spliceGeoStatus">
+                            <div class="detection-alert">
+                                <span class="detection-icon">📍</span>
+                                <div class="detection-content">
+                                    <div class="detection-title">Splice locations detected!</div>
+                                    <div class="detection-description">1 splice point with location data ready for mapping</div>
+                                </div>
+                                <button class="detection-action" onclick="enableMapping()">
+                                    View on Map
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Process Section -->
+                <div class="process-section">
+                    <button class="process-btn" id="processBtn" onclick="processData()">
+                        <span>⚡</span>
+                        <span>Process Network Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Panel -->
+        <div class="content-panel" id="map-panel">
+            <div class="map-panel">
+                <div id="networkMap"></div>
+                
+                <!-- Floating Panels -->
+                <div class="floating-panel stats-panel fade-in">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Network Overview</h3>
+                        <button class="panel-close" onclick="togglePanel(this)">×</button>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCables">0</div>
+                            <div class="stat-label">Cables</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statSplices">0</div>
+                            <div class="stat-label">Splices</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statFibers">0</div>
+                            <div class="stat-label">Total Fibers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statActive">0</div>
+                            <div class="stat-label">Active</div>
+                        </div>
+                    </div>
+                    <div style="padding: 0 1.5rem 1.5rem; text-align: center;">
+                        <div id="fsaInfo" style="font-size: 0.875rem; color: var(--text-light); margin-top: -0.5rem;">
+                            <!-- FSA info will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="floating-panel search-panel fade-in">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Search Network</h3>
+                        <button class="panel-close" onclick="togglePanel(this)">×</button>
+                    </div>
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" placeholder="Search cables or splices..." id="searchInput">
+                    </div>
+                    <div class="search-results" id="searchResults">
+                    </div>
+                </div>
+                
+                <div class="floating-panel legend-panel fade-in">
+                    <h4 class="legend-title">Cable Types</h4>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #3b82f6;"></div>
+                            <span>FEEDER</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #10b981;"></div>
+                            <span>DISTRIBUTION</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #8b5cf6;"></div>
+                            <span>TAIL</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: var(--primary);"></div>
+                            <span>Splice Point</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button class="map-control tooltip" onclick="zoomToFit()">
+                        <span>⊡</span>
+                        <div class="tooltip-content">Fit to Network</div>
+                    </button>
+                    <button class="map-control tooltip" onclick="toggleLayerPanel()">
+                        <span>🎛️</span>
+                        <div class="tooltip-content">Layer Controls</div>
+                    </button>
+                    <button class="map-control tooltip" onclick="detectAllSplices()">
+                        <span>🔍</span>
+                        <div class="tooltip-content">Detect Splices</div>
+                    </button>
+                    <button class="map-control tooltip" onclick="batchProcessFSA()">
+                        <span>⚡</span>
+                        <div class="tooltip-content">Batch Process FSA</div>
+                    </button>
+                    <button class="map-control tooltip" onclick="exportKML()">
+                        <span>📥</span>
+                        <div class="tooltip-content">Export KML</div>
+                    </button>
+                    <button class="map-control tooltip" onclick="printMap()">
+                        <span>🖨️</span>
+                        <div class="tooltip-content">Print Map</div>
+                    </button>
+                </div>
+                
+                <!-- Layer Control Panel -->
+                <div class="layer-control-panel" id="layerControlPanel" style="display: none;">
+                    <div class="layer-control-header">
+                        <h3 class="layer-control-title">Layer Controls</h3>
+                        <button class="panel-close" onclick="toggleLayerPanel()">×</button>
+                    </div>
+                    
+                    <div class="layer-section">
+                        <div class="layer-section-title">Cable Types</div>
+                        <div class="layer-toggle active" onclick="toggleCableType('FEEDER')">
+                            <div class="layer-toggle-label">
+                                <span style="width: 20px; height: 3px; background: #3b82f6; display: inline-block;"></span>
+                                <span>Feeder Cables</span>
+                            </div>
+                            <div class="layer-toggle-switch"></div>
+                        </div>
+                        <div class="layer-toggle active" onclick="toggleCableType('DISTRIBUTION')">
+                            <div class="layer-toggle-label">
+                                <span style="width: 20px; height: 3px; background: #10b981; display: inline-block;"></span>
+                                <span>Distribution Cables</span>
+                            </div>
+                            <div class="layer-toggle-switch"></div>
+                        </div>
+                        <div class="layer-toggle active" onclick="toggleCableType('TAIL')">
+                            <div class="layer-toggle-label">
+                                <span style="width: 20px; height: 3px; background: #8b5cf6; display: inline-block;"></span>
+                                <span>Tail Cables</span>
+                            </div>
+                            <div class="layer-toggle-switch"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="layer-section">
+                        <div class="layer-section-title">Features</div>
+                        <div class="layer-toggle active" onclick="toggleFeature('splices')">
+                            <div class="layer-toggle-label">
+                                <span>🔵</span>
+                                <span>Splice Points</span>
+                            </div>
+                            <div class="layer-toggle-switch"></div>
+                        </div>
+                        <div class="layer-toggle active" onclick="toggleFeature('labels')">
+                            <div class="layer-toggle-label">
+                                <span>🏷️</span>
+                                <span>Cable Labels</span>
+                            </div>
+                            <div class="layer-toggle-switch"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="layer-section">
+                        <div class="layer-section-title">Filters</div>
+                        <label style="font-size: 0.75rem; color: var(--text-light); display: block; margin-bottom: 0.25rem;">
+                            Min Dark Fibers Available:
+                        </label>
+                        <input type="number" class="filter-input" id="darkFiberFilter" 
+                            placeholder="e.g. 12" onchange="applyDarkFiberFilter()">
+                        
+                        <label style="font-size: 0.75rem; color: var(--text-light); display: block; margin-bottom: 0.25rem; margin-top: 0.5rem;">
+                            Cable ID Contains:
+                        </label>
+                        <input type="text" class="filter-input" id="cableIdFilter" 
+                            placeholder="e.g. AUGS04" oninput="applyCableIdFilter()">
+                    </div>
+                    
+                    <div class="layer-section">
+                        <div class="layer-section-title">Statistics</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Visible Cables:</strong> <span id="visibleCablesCount">0</span>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Total Dark Fibers:</strong> <span id="totalDarkFibers">0</span>
+                            </div>
+                            <div>
+                                <strong>Avg Utilization:</strong> <span id="avgUtilization">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Splicing Documents Panel -->
+        <div class="content-panel" id="splicing-panel">
+            <div class="splicing-panel">
+                <div class="splicing-container">
+                    <!-- Splice Document Header -->
+                    <div class="splice-doc-header">
+                        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.5rem;">
+                            Splice Documentation
+                        </h2>
+                        <p style="color: var(--text-light);">
+                            Manage and export splice matrices, circuit assignments, and visual diagrams
+                        </p>
+                        
+                        <div class="splice-doc-actions">
+                            <button class="export-btn" onclick="exportExcel()">
+                                <span>📊</span> Export Excel
+                            </button>
+                            <button class="export-btn" onclick="exportPDF()">
+                                <span>📄</span> Export PDF
+                            </button>
+                            <button class="export-btn" onclick="exportJSON()">
+                                <span>💾</span> Export JSON
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Circuit ID Assignment -->
+                    <div class="circuit-panel">
+                        <div class="circuit-header">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--secondary);">
+                                Circuit ID Assignment
+                            </h3>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <label style="font-size: 0.875rem; color: var(--text-light);">Prefix:</label>
+                                <input type="text" class="circuit-prefix-input" id="circuitPrefix" 
+                                    placeholder="CKT" value="CKT">
+                                <button class="grid-btn" onclick="generateCircuitIDs()">
+                                    <span>🔄</span> Generate IDs
+                                </button>
+                            </div>
+                        </div>
+                        <div class="circuit-list" id="circuitList">
+                            <!-- Circuit IDs will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Splice Matrix -->
+                    <div class="splice-matrix" id="spliceMatrixContainer">
+                        <!-- Splice matrices will be generated here -->
+                    </div>
+                    
+                    <!-- Visual Splice Diagram -->
+                    <div class="splice-diagram">
+                        <div class="splice-matrix-header">
+                            <h3 class="splice-matrix-title">Visual Splice Diagram</h3>
+                            <button class="grid-btn" onclick="refreshDiagram()">
+                                <span>🔄</span> Refresh
+                            </button>
+                        </div>
+                        <div class="diagram-canvas" id="spliceDiagram">
+                            <!-- Visual diagram will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analysis Panel -->
+        <div class="content-panel" id="analysis-panel">
+            <div class="data-input-panel">
+                <h2 style="text-align: center; margin: 4rem 0; color: var(--text-light);">
+                    Analysis features coming soon...
+                </h2>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Splice Detail Modal -->
+    <div class="modal-overlay" id="spliceModal" onclick="if(event.target === this) closeSpliceModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Splice Point Details</h2>
+                <button class="panel-close" onclick="closeSpliceModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Splice details will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span class="notification-icon">✅</span>
+        <div class="notification-content">
+            <div class="notification-title" id="notificationTitle">Success!</div>
+            <div class="notification-message" id="notificationMessage">Data imported successfully</div>
+        </div>
+    </div>
+    
+    <!-- Cable Detail Modal -->
+    <div class="modal-overlay" id="cableDetailModal" onclick="if(event.target === this) closeCableDetailModal()">
+        <div class="cable-detail-modal" id="cableDetailContent">
+            <div class="modal-header">
+                <h2 class="modal-title" id="cableDetailTitle">Cable Details</h2>
+                <button class="panel-close" onclick="closeCableDetailModal()">×</button>
+            </div>
+            <div class="modal-body" id="cableDetailBody">
+                <!-- Cable details will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Global state
+        let cableData = [];
+        let spliceData = [];
+        let map = null;
+        let networkLayers = {
+            cables: {},
+            splices: {},
+            labels: {}
+        };
+        let geoDataDetected = {
+            cables: false,
+            splices: false
+        };
+        let spliceConnections = {}; // Store parsed splice connections
+        let circuitAssignments = {}; // Store circuit ID assignments
+        
+        // Layer visibility state
+        let layerVisibility = {
+            FEEDER: true,
+            DISTRIBUTION: true,
+            TAIL: true,
+            'MST TAIL': true,
+            splices: true,
+            labels: false
+        };
+        
+        // Active filters
+        let activeFilters = {
+            darkFibers: null,
+            cableId: null
+        };
+        
+        // Show notification
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const titleEl = document.getElementById('notificationTitle');
+            const messageEl = document.getElementById('notificationMessage');
+            const iconEl = notification.querySelector('.notification-icon');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            // Set icon and color based on type
+            if (type === 'success') {
+                notification.style.background = 'var(--success)';
+                iconEl.textContent = '✅';
+            } else if (type === 'error') {
+                notification.style.background = 'var(--error)';
+                iconEl.textContent = '❌';
+            } else if (type === 'info') {
+                notification.style.background = 'var(--info)';
+                iconEl.textContent = 'ℹ️';
+            }
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Initialize grids
+        function initializeGrids() {
+            initializeCableGrid();
+            initializeSpliceGrid();
+        }
+        
+        // Initialize cable grid
+        function initializeCableGrid() {
+            const tbody = document.getElementById('cableGridBody');
+            tbody.innerHTML = '';
+            cableData = []; // Reset data array
+            for (let i = 0; i < 10; i++) {
+                addCableRow();
+            }
+            updateCableCount();
+        }
+        
+        // Initialize splice grid
+        function initializeSpliceGrid() {
+            const tbody = document.getElementById('spliceGridBody');
+            tbody.innerHTML = '';
+            spliceData = []; // Reset data array
+            for (let i = 0; i < 10; i++) {
+                addSpliceRow();
+            }
+            updateSpliceCount();
+        }
+        
+        // Add cable row
+        function addCableRow() {
+            const tbody = document.getElementById('cableGridBody');
+            const rowIndex = tbody.rows.length;
+            const row = tbody.insertRow();
+            
+            // Row number
+            const rowNumCell = row.insertCell();
+            rowNumCell.className = 'row-number';
+            rowNumCell.textContent = rowIndex + 1;
+            
+            // Data cells
+            const columns = ['cable_type', 'fondid', 'size', 'cable_ct', 'wkt_geom'];
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'grid-input';
+                input.dataset.row = rowIndex;
+                input.dataset.column = col;
+                
+                // Add event listeners
+                input.addEventListener('input', () => handleCableInput(rowIndex, col));
+                input.addEventListener('focus', () => input.parentElement.parentElement.classList.add('selected'));
+                input.addEventListener('blur', () => input.parentElement.parentElement.classList.remove('selected'));
+                
+                cell.appendChild(input);
+            });
+            
+            // Initialize row data
+            if (!cableData[rowIndex]) {
+                cableData[rowIndex] = {};
+            }
+        }
+        
+        // Add splice row
+        function addSpliceRow() {
+            const tbody = document.getElementById('spliceGridBody');
+            const rowIndex = tbody.rows.length;
+            const row = tbody.insertRow();
+            
+            // Row number
+            const rowNumCell = row.insertCell();
+            rowNumCell.className = 'row-number';
+            rowNumCell.textContent = rowIndex + 1;
+            
+            // Data cells
+            const columns = ['fondid', 'fda', 'fsa', 'placement', 'spec', 'ap_type', 'wkt_geom'];
+            columns.forEach(col => {
+                const cell = row.insertCell();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'grid-input';
+                input.dataset.row = rowIndex;
+                input.dataset.column = col;
+                
+                // Add event listeners
+                input.addEventListener('input', () => handleSpliceInput(rowIndex, col));
+                input.addEventListener('focus', () => input.parentElement.parentElement.classList.add('selected'));
+                input.addEventListener('blur', () => input.parentElement.parentElement.classList.remove('selected'));
+                
+                cell.appendChild(input);
+            });
+            
+            // Initialize row data
+            if (!spliceData[rowIndex]) {
+                spliceData[rowIndex] = {};
+            }
+        }
+        
+        // Add multiple cable rows
+        function addCableRows(count) {
+            for (let i = 0; i < count; i++) {
+                addCableRow();
+            }
+            updateCableCount();
+        }
+        
+        // Add multiple splice rows
+        function addSpliceRows(count) {
+            for (let i = 0; i < count; i++) {
+                addSpliceRow();
+            }
+            updateSpliceCount();
+        }
+        
+        // Handle cable input
+        function handleCableInput(row, col) {
+            const input = document.querySelector(`#cableGridBody input[data-row="${row}"][data-column="${col}"]`);
+            cableData[row][col] = input.value;
+            
+            // Validate
+            validateCableRow(row);
+            
+            // Check for geo data
+            checkGeoData();
+            
+            // Auto-expand if near bottom
+            const tbody = document.getElementById('cableGridBody');
+            if (row >= tbody.rows.length - 2) {
+                addCableRows(5);
+            }
+        }
+        
+        // Handle splice input
+        function handleSpliceInput(row, col) {
+            const input = document.querySelector(`#spliceGridBody input[data-row="${row}"][data-column="${col}"]`);
+            spliceData[row][col] = input.value;
+            
+            // Validate
+            validateSpliceRow(row);
+            
+            // Check for geo data
+            checkGeoData();
+            
+            // Auto-expand if near bottom
+            const tbody = document.getElementById('spliceGridBody');
+            if (row >= tbody.rows.length - 2) {
+                addSpliceRows(5);
+            }
+        }
+        
+        // Validate cable row
+        function validateCableRow(row) {
+            const data = cableData[row];
+            const inputs = document.querySelectorAll(`#cableGridBody input[data-row="${row}"]`);
+            
+            // Validate cable type
+            if (data.cable_type) {
+                const validTypes = ['FEEDER', 'DISTRIBUTION', 'TAIL', 'MST TAIL'];
+                if (validTypes.includes(data.cable_type.toUpperCase())) {
+                    inputs[0].classList.add('valid');
+                    inputs[0].classList.remove('error');
+                    data.cable_type = data.cable_type.toUpperCase();
+                    inputs[0].value = data.cable_type;
+                } else {
+                    inputs[0].classList.add('error');
+                    inputs[0].classList.remove('valid');
+                }
+            }
+            
+            // Validate size
+            if (data.size && !isNaN(data.size) && parseInt(data.size) > 0) {
+                inputs[2].classList.add('valid');
+                inputs[2].classList.remove('error');
+            } else if (data.size) {
+                inputs[2].classList.add('error');
+                inputs[2].classList.remove('valid');
+            }
+            
+            updateProcessButton();
+        }
+        
+        // Validate splice row
+        function validateSpliceRow(row) {
+            const data = spliceData[row];
+            const inputs = document.querySelectorAll(`#spliceGridBody input[data-row="${row}"]`);
+            
+            // Basic validation
+            if (data.fondid && data.fondid.length > 0) {
+                inputs[0].classList.add('valid');
+            }
+            
+            updateProcessButton();
+        }
+        
+        // Check for geographic data
+        function checkGeoData() {
+            // Check cables
+            let cableGeoCount = 0;
+            cableData.forEach(row => {
+                if (row.wkt_geom && row.wkt_geom.includes('MultiLineString')) {
+                    cableGeoCount++;
+                }
+            });
+            
+            const cableGeoStatus = document.getElementById('cableGeoStatus');
+            if (cableGeoCount > 0) {
+                cableGeoStatus.classList.add('show');
+                cableGeoStatus.querySelector('.detection-description').textContent = 
+                    `${cableGeoCount} cable${cableGeoCount > 1 ? 's' : ''} with location data ready for mapping`;
+                geoDataDetected.cables = true;
+            } else {
+                cableGeoStatus.classList.remove('show');
+                geoDataDetected.cables = false;
+            }
+            
+            // Check splices
+            let spliceGeoCount = 0;
+            spliceData.forEach(row => {
+                if (row.wkt_geom && row.wkt_geom.includes('Point')) {
+                    spliceGeoCount++;
+                }
+            });
+            
+            const spliceGeoStatus = document.getElementById('spliceGeoStatus');
+            if (spliceGeoCount > 0) {
+                spliceGeoStatus.classList.add('show');
+                spliceGeoStatus.querySelector('.detection-description').textContent = 
+                    `${spliceGeoCount} splice point${spliceGeoCount > 1 ? 's' : ''} with location data ready for mapping`;
+                geoDataDetected.splices = true;
+            } else {
+                spliceGeoStatus.classList.remove('show');
+                geoDataDetected.splices = false;
+            }
+        }
+        
+        // Update counts
+        function updateCableCount() {
+            const count = document.getElementById('cableGridBody').rows.length;
+            document.getElementById('cableRowCount').textContent = `${count} rows`;
+        }
+        
+        function updateSpliceCount() {
+            const count = document.getElementById('spliceGridBody').rows.length;
+            document.getElementById('spliceRowCount').textContent = `${count} rows`;
+        }
+        
+        // Update process button
+        function updateProcessButton() {
+            const validCables = cableData.filter(row => 
+                row.fondid && row.cable_type && row.size && row.cable_ct
+            ).length;
+            
+            const validSplices = spliceData.filter(row => 
+                row.fondid
+            ).length;
+            
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = validCables === 0 && validSplices === 0;
+        }
+        
+        // Clear grids
+        function clearCableGrid() {
+            if (confirm('Clear all cable data?')) {
+                cableData = [];
+                initializeCableGrid();
+                checkGeoData();
+                updateCableCount();
+                updateProcessButton();
+                showNotification('Cleared!', 'Cable data has been cleared');
+            }
+        }
+        
+        function clearSpliceGrid() {
+            if (confirm('Clear all splice data?')) {
+                spliceData = [];
+                initializeSpliceGrid();
+                checkGeoData();
+                updateSpliceCount();
+                updateProcessButton();
+                showNotification('Cleared!', 'Splice data has been cleared');
+            }
+        }
+        
+        // Load sample data
+        function loadCableSample() {
+            const sample = [
+                {
+                    cable_type: 'DISTRIBUTION',
+                    fondid: 'AUGS04-MULTI_TIER_CABLE_0040',
+                    size: '48',
+                    cable_ct: 'T2 1-3, AUGS04-T2_HUB_0002 78-80; xd 4-48',
+                    wkt_geom: 'MultiLineString ((-79.10523456706779655 38.02460864128821072, -79.10582181551637859 38.02432248636836221))'
+                },
+                {
+                    cable_type: 'MST TAIL',
+                    fondid: 'AUGS04-TAIL_CABLE_0047',
+                    size: '4',
+                    cable_ct: 'T1_TAIL 1-4, AUGS04-T2_HUB_0002 85-88',
+                    wkt_geom: 'MultiLineString ((-79.10523456706779655 38.02460864128821072, -79.10523956706781235 38.02461730154224284))'
+                },
+                {
+                    cable_type: 'FEEDER',
+                    fondid: 'AUGS04-FEEDER_CABLE_0001',
+                    size: '144',
+                    cable_ct: 'MAIN 1-144, AUGS04-FDH_0001 1-144',
+                    wkt_geom: ''
+                }
+            ];
+            
+            // Fill grid
+            sample.forEach((data, i) => {
+                if (i >= cableData.length) addCableRow();
+                cableData[i] = data;
+                
+                // Update UI
+                Object.entries(data).forEach(([col, val]) => {
+                    const input = document.querySelector(`#cableGridBody input[data-row="${i}"][data-column="${col}"]`);
+                    if (input) {
+                        input.value = val;
+                        handleCableInput(i, col);
+                    }
+                });
+            });
+        }
+        
+        function loadSpliceSample() {
+            const sample = [
+                {
+                    fondid: 'AUGS04-T2_SPLICE_0030',
+                    fda: 'VAAUGS0402',
+                    fsa: 'VA-AUGS-04',
+                    placement: 'UNG',
+                    spec: 'X-2S',
+                    ap_type: 'SPLICE',
+                    wkt_geom: 'Point (-79.10523456706779655 38.02460864128821072)'
+                }
+            ];
+            
+            // Fill grid
+            sample.forEach((data, i) => {
+                if (i >= spliceData.length) addSpliceRow();
+                spliceData[i] = data;
+                
+                // Update UI
+                Object.entries(data).forEach(([col, val]) => {
+                    const input = document.querySelector(`#spliceGridBody input[data-row="${i}"][data-column="${col}"]`);
+                    if (input) {
+                        input.value = val;
+                        handleSpliceInput(i, col);
+                    }
+                });
+            });
+        }
+        
+        // Handle paste
+        document.addEventListener('paste', function(e) {
+            const activeElement = document.activeElement;
+            
+            // Check if pasting in a grid
+            if (activeElement.classList.contains('grid-input')) {
+                e.preventDefault();
+                
+                const pastedData = e.clipboardData.getData('text');
+                const isTableData = pastedData.includes('\t') || pastedData.includes('\n');
+                
+                if (isTableData) {
+                    const gridType = activeElement.closest('#cableGrid') ? 'cable' : 'splice';
+                    processPastedData(pastedData, gridType);
+                } else {
+                    // Single cell paste
+                    activeElement.value = pastedData;
+                    const row = parseInt(activeElement.dataset.row);
+                    const col = activeElement.dataset.column;
+                    const gridType = activeElement.closest('#cableGrid') ? 'cable' : 'splice';
+                    
+                    if (gridType === 'cable') {
+                        handleCableInput(row, col);
+                    } else {
+                        handleSpliceInput(row, col);
+                    }
+                }
+            }
+        });
+        
+        // Process pasted data
+        function processPastedData(data, gridType) {
+            const lines = data.split('\n').filter(line => line.trim());
+            if (lines.length === 0) return;
+            
+            // Detect headers and create column mapping
+            let headerMapping = {};
+            let dataStartRow = 0;
+            
+            // Check if first line contains headers
+            const firstLine = lines[0];
+            const possibleHeaders = firstLine.split('\t').map(h => h.trim().toLowerCase());
+            
+            if (gridType === 'cable') {
+                const cableHeaders = ['wkt_geom', 'cable_type', 'fondid', 'size', 'cable_ct'];
+                const hasHeaders = cableHeaders.some(header => 
+                    possibleHeaders.some(h => h.includes(header.toLowerCase()) || header.includes(h))
+                );
+                
+                if (hasHeaders) {
+                    dataStartRow = 1;
+                    // Create mapping from column index to field name
+                    possibleHeaders.forEach((header, index) => {
+                        if (header.includes('wkt_geom') || header.includes('geom')) {
+                            headerMapping[index] = 'wkt_geom';
+                        } else if (header.includes('cable_type') || header.includes('type')) {
+                            headerMapping[index] = 'cable_type';
+                        } else if (header.includes('fondid') || header.includes('id')) {
+                            headerMapping[index] = 'fondid';
+                        } else if (header.includes('size')) {
+                            headerMapping[index] = 'size';
+                        } else if (header.includes('cable_ct') || header.includes('ct') || header.includes('connection')) {
+                            headerMapping[index] = 'cable_ct';
+                        }
+                    });
+                } else {
+                    // Use default order if no headers detected
+                    headerMapping = {
+                        0: 'cable_type',
+                        1: 'fondid',
+                        2: 'size',
+                        3: 'cable_ct',
+                        4: 'wkt_geom'
+                    };
+                }
+                
+                // Clear existing data
+                cableData = [];
+                const tbody = document.getElementById('cableGridBody');
+                tbody.innerHTML = '';
+                
+                // Process each data line
+                for (let i = dataStartRow; i < lines.length; i++) {
+                    const cells = lines[i].split('\t');
+                    if (cells.length > 0 && cells.some(cell => cell.trim())) {
+                        addCableRow();
+                        const rowIndex = i - dataStartRow;
+                        
+                        cells.forEach((value, colIndex) => {
+                            if (headerMapping[colIndex]) {
+                                const fieldName = headerMapping[colIndex];
+                                cableData[rowIndex][fieldName] = value.trim();
+                                const input = document.querySelector(
+                                    `#cableGridBody input[data-row="${rowIndex}"][data-column="${fieldName}"]`
+                                );
+                                if (input) {
+                                    input.value = value.trim();
+                                }
+                            }
+                        });
+                        
+                        // Validate row
+                        validateCableRow(rowIndex);
+                    }
+                }
+                
+                // Remove empty trailing rows
+                cleanupEmptyRows('cable');
+                
+            } else {
+                // Splice grid processing
+                const spliceHeaders = ['wkt_geom', 'fondid', 'fda', 'fsa', 'placement', 'spec', 'ap_type'];
+                const hasHeaders = spliceHeaders.some(header => 
+                    possibleHeaders.some(h => h.includes(header.toLowerCase()) || header.includes(h))
+                );
+                
+                if (hasHeaders) {
+                    dataStartRow = 1;
+                    // Create mapping from column index to field name
+                    possibleHeaders.forEach((header, index) => {
+                        if (header.includes('wkt_geom') || header.includes('geom')) {
+                            headerMapping[index] = 'wkt_geom';
+                        } else if (header.includes('fondid') || (header.includes('id') && !header.includes('fda'))) {
+                            headerMapping[index] = 'fondid';
+                        } else if (header.includes('fda')) {
+                            headerMapping[index] = 'fda';
+                        } else if (header.includes('fsa')) {
+                            headerMapping[index] = 'fsa';
+                        } else if (header.includes('placement')) {
+                            headerMapping[index] = 'placement';
+                        } else if (header.includes('spec')) {
+                            headerMapping[index] = 'spec';
+                        } else if (header.includes('ap_type') || header.includes('type')) {
+                            headerMapping[index] = 'ap_type';
+                        }
+                    });
+                } else {
+                    // Use default order if no headers detected
+                    headerMapping = {
+                        0: 'wkt_geom',
+                        1: 'fondid',
+                        2: 'fda',
+                        3: 'fsa',
+                        4: 'placement',
+                        5: 'spec',
+                        6: 'ap_type'
+                    };
+                }
+                
+                // Clear existing data
+                spliceData = [];
+                const tbody = document.getElementById('spliceGridBody');
+                tbody.innerHTML = '';
+                
+                // Process each data line
+                for (let i = dataStartRow; i < lines.length; i++) {
+                    const cells = lines[i].split('\t');
+                    if (cells.length > 0 && cells.some(cell => cell.trim())) {
+                        addSpliceRow();
+                        const rowIndex = i - dataStartRow;
+                        
+                        cells.forEach((value, colIndex) => {
+                            if (headerMapping[colIndex]) {
+                                const fieldName = headerMapping[colIndex];
+                                spliceData[rowIndex][fieldName] = value.trim();
+                                const input = document.querySelector(
+                                    `#spliceGridBody input[data-row="${rowIndex}"][data-column="${fieldName}"]`
+                                );
+                                if (input) {
+                                    input.value = value.trim();
+                                }
+                            }
+                        });
+                        
+                        // Validate row
+                        validateSpliceRow(rowIndex);
+                    }
+                }
+                
+                // Remove empty trailing rows
+                cleanupEmptyRows('splice');
+            }
+            
+            checkGeoData();
+            updateProcessButton();
+            
+            // Show success notification
+            const dataType = gridType === 'cable' ? 'Cable' : 'Splice';
+            const rowCount = gridType === 'cable' ? 
+                cableData.filter(row => row && Object.values(row).some(val => val && val.toString().trim())).length :
+                spliceData.filter(row => row && Object.values(row).some(val => val && val.toString().trim())).length;
+            
+            showNotification(
+                'Data Imported!', 
+                `Successfully imported ${rowCount} ${dataType.toLowerCase()} record${rowCount !== 1 ? 's' : ''}`
+            );
+        }
+        
+        // Clean up empty rows at the end
+        function cleanupEmptyRows(gridType) {
+            if (gridType === 'cable') {
+                // Find last non-empty row
+                let lastValidRow = -1;
+                for (let i = cableData.length - 1; i >= 0; i--) {
+                    if (cableData[i] && Object.values(cableData[i]).some(val => val && val.toString().trim())) {
+                        lastValidRow = i;
+                        break;
+                    }
+                }
+                
+                // Keep data up to last valid row plus a few empty rows
+                if (lastValidRow >= 0) {
+                    cableData = cableData.slice(0, lastValidRow + 1);
+                    // Rebuild grid
+                    const tbody = document.getElementById('cableGridBody');
+                    tbody.innerHTML = '';
+                    for (let i = 0; i <= lastValidRow; i++) {
+                        addCableRow();
+                        // Restore data
+                        Object.entries(cableData[i]).forEach(([col, val]) => {
+                            const input = document.querySelector(`#cableGridBody input[data-row="${i}"][data-column="${col}"]`);
+                            if (input) {
+                                input.value = val || '';
+                                handleCableInput(i, col);
+                            }
+                        });
+                    }
+                    // Add a few empty rows
+                    addCableRows(5);
+                }
+            } else {
+                // Similar for splice
+                let lastValidRow = -1;
+                for (let i = spliceData.length - 1; i >= 0; i--) {
+                    if (spliceData[i] && Object.values(spliceData[i]).some(val => val && val.toString().trim())) {
+                        lastValidRow = i;
+                        break;
+                    }
+                }
+                
+                if (lastValidRow >= 0) {
+                    spliceData = spliceData.slice(0, lastValidRow + 1);
+                    // Rebuild grid
+                    const tbody = document.getElementById('spliceGridBody');
+                    tbody.innerHTML = '';
+                    for (let i = 0; i <= lastValidRow; i++) {
+                        addSpliceRow();
+                        // Restore data
+                        Object.entries(spliceData[i]).forEach(([col, val]) => {
+                            const input = document.querySelector(`#spliceGridBody input[data-row="${i}"][data-column="${col}"]`);
+                            if (input) {
+                                input.value = val || '';
+                                handleSpliceInput(i, col);
+                            }
+                        });
+                    }
+                    // Add a few empty rows
+                    addSpliceRows(5);
+                }
+            }
+        }
+        
+        // Switch tabs
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            const clickedTab = event ? event.target : document.querySelector(`.nav-tab:nth-child(${tab === 'input' ? 1 : tab === 'map' ? 2 : tab === 'splicing' ? 3 : 4})`);
+            if (clickedTab) clickedTab.classList.add('active');
+            
+            // Update panels
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`${tab}-panel`).classList.add('active');
+            
+            // Initialize map if needed
+            if (tab === 'map' && !map) {
+                initializeMap();
+            } else if (tab === 'map' && window.processedNetwork) {
+                // Update statistics when switching to map tab
+                updateLayerStatistics();
+            }
+            
+            // Generate splice documents if switching to splicing tab
+            if (tab === 'splicing' && window.processedNetwork) {
+                generateSpliceDocuments();
+            }
+        }
+        
+        // Process data
+        function processData() {
+            // Filter valid data
+            const validCables = cableData.filter(row => 
+                row.fondid && row.cable_type && row.size && row.cable_ct
+            );
+            
+            const validSplices = spliceData.filter(row => 
+                row.fondid
+            );
+            
+            // Parse cable connections
+            parseCableConnections(validCables);
+            
+            // Store processed data
+            window.processedNetwork = {
+                cables: validCables,
+                splices: validSplices
+            };
+            
+            // If geo data detected, switch to map
+            if (geoDataDetected.cables || geoDataDetected.splices) {
+                switchTab('map');
+                setTimeout(() => {
+                    displayNetwork(window.processedNetwork);
+                    updateLayerStatistics();
+                }, 100);
+            } else {
+                // Show notification that processing is complete
+                showNotification('Processing Complete', 'Network data processed successfully');
+            }
+        }
+        
+        // Parse cable connections to understand splicing
+        function parseCableConnections(cables) {
+            spliceConnections = {};
+            
+            cables.forEach(cable => {
+                if (!cable.cable_ct) return;
+                
+                // Parse connection string
+                // Format: "T2 1-3, AUGS04-T2_HUB_0002 78-80; xd 4-48"
+                const connections = cable.cable_ct.split(';');
+                
+                connections.forEach(conn => {
+                    const trimmedConn = conn.trim();
+                    
+                    // Skip dead fibers
+                    if (trimmedConn.toLowerCase().startsWith('xd')) {
+                        const deadMatch = trimmedConn.match(/xd\s+(\d+)-(\d+)/i);
+                        if (deadMatch) {
+                            const start = parseInt(deadMatch[1]);
+                            const end = parseInt(deadMatch[2]);
+                            if (!cable.deadFibers) cable.deadFibers = [];
+                            for (let i = start; i <= end; i++) {
+                                cable.deadFibers.push(i);
+                            }
+                        }
+                        return;
+                    }
+                    
+                    // Parse active connections
+                    const parts = trimmedConn.split(',').map(p => p.trim());
+                    if (parts.length >= 2) {
+                        const sourcePart = parts[0];
+                        const destPart = parts[1];
+                        
+                        // Extract ranges
+                        const sourceMatch = sourcePart.match(/(\S+)\s+(\d+)-(\d+)/);
+                        const destMatch = destPart.match(/(\S+)\s+(\d+)-(\d+)/);
+                        
+                        if (sourceMatch && destMatch) {
+                            const sourceDevice = sourceMatch[1];
+                            const sourceStart = parseInt(sourceMatch[2]);
+                            const sourceEnd = parseInt(sourceMatch[3]);
+                            
+                            const destDevice = destMatch[1];
+                            const destStart = parseInt(destMatch[2]);
+                            const destEnd = parseInt(destMatch[3]);
+                            
+                            // Store connection info
+                            if (!spliceConnections[cable.fondid]) {
+                                spliceConnections[cable.fondid] = [];
+                            }
+                            
+                            spliceConnections[cable.fondid].push({
+                                sourceDevice,
+                                sourceRange: [sourceStart, sourceEnd],
+                                destDevice,
+                                destRange: [destStart, destEnd],
+                                cable: cable.fondid,
+                                cableType: cable.cable_type,
+                                cableSize: parseInt(cable.size)
+                            });
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Generate splice documents
+        function generateSpliceDocuments() {
+            if (!window.processedNetwork) return;
+            
+            const container = document.getElementById('spliceMatrixContainer');
+            container.innerHTML = '';
+            
+            // Group splices by location/FDA
+            const splicesByLocation = {};
+            window.processedNetwork.splices.forEach(splice => {
+                const key = splice.fda || splice.fondid;
+                if (!splicesByLocation[key]) {
+                    splicesByLocation[key] = [];
+                }
+                splicesByLocation[key].push(splice);
+            });
+            
+            // Generate splice matrix for each location
+            Object.entries(splicesByLocation).forEach(([location, splices]) => {
+                const matrixDiv = document.createElement('div');
+                matrixDiv.className = 'splice-matrix';
+                
+                const header = document.createElement('div');
+                header.className = 'splice-matrix-header';
+                header.innerHTML = `
+                    <h3 class="splice-matrix-title">Splice Matrix - ${location}</h3>
+                    <span style="font-size: 0.875rem; color: var(--text-light);">
+                        ${splices.length} splice${splices.length > 1 ? 's' : ''}
+                    </span>
+                `;
+                matrixDiv.appendChild(header);
+                
+                // Create splice table
+                const table = createSpliceTable(splices);
+                matrixDiv.appendChild(table);
+                
+                container.appendChild(matrixDiv);
+            });
+            
+            // Generate circuit IDs
+            generateCircuitIDs();
+            
+            // Generate visual diagram
+            generateVisualDiagram();
+        }
+        
+        // Create splice table
+        function createSpliceTable(splices) {
+            const table = document.createElement('table');
+            table.className = 'splice-table';
+            
+            // Header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Splice ID</th>
+                    <th>Type</th>
+                    <th>Input Cable</th>
+                    <th>Input Fibers</th>
+                    <th>Output Cable</th>
+                    <th>Output Fibers</th>
+                    <th>Status</th>
+                    <th>Circuit ID</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            // Body
+            const tbody = document.createElement('tbody');
+            
+            splices.forEach(splice => {
+                // Find connections for this splice
+                const connections = findSpliceConnections(splice.fondid);
+                
+                if (connections.length === 0) {
+                    // No connections found, add placeholder row
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${splice.fondid}</td>
+                        <td>${splice.ap_type || 'SPLICE'}</td>
+                        <td colspan="6" style="text-align: center; color: var(--text-light);">
+                            No connection data available
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                } else {
+                    connections.forEach(conn => {
+                        const row = document.createElement('tr');
+                        const fiberCount = conn.sourceRange[1] - conn.sourceRange[0] + 1;
+                        const status = conn.deadFibers ? 'dead' : 'active';
+                        const circuitId = circuitAssignments[`${splice.fondid}-${conn.sourceRange[0]}-${conn.sourceRange[1]}`] || '-';
+                        
+                        row.innerHTML = `
+                            <td>${splice.fondid}</td>
+                            <td>${splice.ap_type || 'SPLICE'}</td>
+                            <td>${conn.cable}</td>
+                            <td>${conn.sourceRange[0]}-${conn.sourceRange[1]} (${fiberCount})</td>
+                            <td>${conn.destDevice}</td>
+                            <td>${conn.destRange[0]}-${conn.destRange[1]}</td>
+                            <td><span class="fiber-status ${status}">${status.toUpperCase()}</span></td>
+                            <td class="circuit-id">${circuitId}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            });
+            
+            table.appendChild(tbody);
+            return table;
+        }
+        
+        // Find connections for a splice
+        function findSpliceConnections(spliceId) {
+            const connections = [];
+            
+            Object.entries(spliceConnections).forEach(([cableId, cableConns]) => {
+                cableConns.forEach(conn => {
+                    if (conn.destDevice.includes(spliceId) || conn.sourceDevice.includes(spliceId)) {
+                        connections.push(conn);
+                    }
+                });
+            });
+            
+            return connections;
+        }
+        
+        // Generate circuit IDs
+        function generateCircuitIDs() {
+            const prefix = document.getElementById('circuitPrefix').value || 'CKT';
+            circuitAssignments = {};
+            
+            let circuitCounter = 1;
+            const circuitList = document.getElementById('circuitList');
+            circuitList.innerHTML = '';
+            
+            // Generate IDs for each connection
+            Object.entries(spliceConnections).forEach(([cableId, connections]) => {
+                connections.forEach(conn => {
+                    const key = `${conn.destDevice}-${conn.sourceRange[0]}-${conn.sourceRange[1]}`;
+                    const circuitId = `${prefix}-${String(circuitCounter).padStart(4, '0')}`;
+                    circuitAssignments[key] = circuitId;
+                    
+                    // Add to display list
+                    const item = document.createElement('div');
+                    item.className = 'circuit-item';
+                    item.innerHTML = `
+                        <span class="circuit-id">${circuitId}</span>
+                        <span style="color: var(--text-light); font-size: 0.75rem;">
+                            ${conn.cable} (${conn.sourceRange[0]}-${conn.sourceRange[1]})
+                        </span>
+                    `;
+                    circuitList.appendChild(item);
+                    
+                    circuitCounter++;
+                });
+            });
+            
+            // Refresh splice tables
+            generateSpliceDocuments();
+        }
+        
+        // Generate visual splice diagram
+        function generateVisualDiagram() {
+            const canvas = document.getElementById('spliceDiagram');
+            canvas.innerHTML = '';
+            
+            // Simple visualization - can be enhanced with more sophisticated graphics
+            let yOffset = 50;
+            
+            window.processedNetwork.cables.forEach((cable, index) => {
+                const cableDiv = document.createElement('div');
+                cableDiv.className = 'cable-representation';
+                cableDiv.style.top = `${yOffset}px`;
+                cableDiv.style.left = '50px';
+                
+                const cableBody = document.createElement('div');
+                cableBody.className = 'cable-body';
+                cableBody.style.width = `${cable.size * 3}px`;
+                cableBody.textContent = `${cable.fondid} (${cable.size}F)`;
+                
+                cableDiv.appendChild(cableBody);
+                canvas.appendChild(cableDiv);
+                
+                // Add fiber representations
+                const connections = spliceConnections[cable.fondid] || [];
+                connections.forEach((conn, connIndex) => {
+                    const fiberBundle = document.createElement('div');
+                    fiberBundle.className = 'fiber-bundle';
+                    fiberBundle.style.top = `${yOffset + 19}px`;
+                    fiberBundle.style.left = `${50 + conn.sourceRange[0] * 3}px`;
+                    fiberBundle.style.width = `${(conn.sourceRange[1] - conn.sourceRange[0] + 1) * 3}px`;
+                    fiberBundle.title = `Fibers ${conn.sourceRange[0]}-${conn.sourceRange[1]} → ${conn.destDevice}`;
+                    
+                    canvas.appendChild(fiberBundle);
+                });
+                
+                yOffset += 60;
+            });
+        }
+        
+        // Refresh diagram
+        function refreshDiagram() {
+            generateVisualDiagram();
+        }
+        
+        // Export functions
+        function exportExcel() {
+            if (!window.processedNetwork) {
+                alert('Please process network data first');
+                return;
+            }
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Cable sheet
+            const cableData = window.processedNetwork.cables.map(cable => ({
+                'Cable Type': cable.cable_type,
+                'Cable ID': cable.fondid,
+                'Size': cable.size,
+                'Connections': cable.cable_ct,
+                'Geometry': cable.wkt_geom || ''
+            }));
+            const cableSheet = XLSX.utils.json_to_sheet(cableData);
+            XLSX.utils.book_append_sheet(wb, cableSheet, 'Cables');
+            
+            // Splice sheet
+            const spliceData = window.processedNetwork.splices.map(splice => ({
+                'Splice ID': splice.fondid,
+                'FDA': splice.fda || '',
+                'FSA': splice.fsa || '',
+                'Placement': splice.placement || '',
+                'Spec': splice.spec || '',
+                'Type': splice.ap_type || '',
+                'Geometry': splice.wkt_geom || ''
+            }));
+            const spliceSheet = XLSX.utils.json_to_sheet(spliceData);
+            XLSX.utils.book_append_sheet(wb, spliceSheet, 'Splices');
+            
+            // Splice matrix sheet
+            const matrixData = [];
+            window.processedNetwork.splices.forEach(splice => {
+                const connections = findSpliceConnections(splice.fondid);
+                connections.forEach(conn => {
+                    matrixData.push({
+                        'Splice ID': splice.fondid,
+                        'Type': splice.ap_type || 'SPLICE',
+                        'Input Cable': conn.cable,
+                        'Input Fibers': `${conn.sourceRange[0]}-${conn.sourceRange[1]}`,
+                        'Output Cable': conn.destDevice,
+                        'Output Fibers': `${conn.destRange[0]}-${conn.destRange[1]}`,
+                        'Status': conn.deadFibers ? 'DEAD' : 'ACTIVE',
+                        'Circuit ID': circuitAssignments[`${splice.fondid}-${conn.sourceRange[0]}-${conn.sourceRange[1]}`] || ''
+                    });
+                });
+            });
+            const matrixSheet = XLSX.utils.json_to_sheet(matrixData);
+            XLSX.utils.book_append_sheet(wb, matrixSheet, 'Splice Matrix');
+            
+            // Save file
+            XLSX.writeFile(wb, `phoenix_fiber_splicing_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+        
+        function exportPDF() {
+            // PDF export would require additional library like jsPDF
+            alert('PDF export coming soon! Use Excel export for now.');
+        }
+        
+        function exportJSON() {
+            if (!window.processedNetwork) {
+                alert('Please process network data first');
+                return;
+            }
+            
+            const exportData = {
+                cables: window.processedNetwork.cables,
+                splices: window.processedNetwork.splices,
+                connections: spliceConnections,
+                circuits: circuitAssignments,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phoenix_fiber_network_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Enable mapping
+        function enableMapping() {
+            processData();
+        }
+        
+        // Initialize map
+        function initializeMap() {
+            map = L.map('networkMap').setView([38.024608, -79.105234], 16);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // If we have processed data, display it
+            if (window.processedNetwork) {
+                displayNetwork(window.processedNetwork);
+                updateLayerStatistics();
+            }
+        }
+        
+        // Display network on map
+        function displayNetwork(network) {
+            // Clear existing layers
+            Object.values(networkLayers.cables).forEach(layer => map.removeLayer(layer));
+            Object.values(networkLayers.splices).forEach(layer => map.removeLayer(layer));
+            
+            let totalFibers = 0;
+            let activeFibers = 0;
+            
+            // First, detect splice points from cable endpoints
+            const splicePoints = detectSplicePoints(network.cables);
+            
+            // Add cables
+            network.cables.forEach(cable => {
+                if (cable.wkt_geom) {
+                    const coords = parseMultiLineString(cable.wkt_geom);
+                    if (coords.length > 0) {
+                        // Calculate lit fibers for this cable
+                        cable.litFibers = calculateLitFibers(cable);
+                        // Calculate dark fibers
+                        cable.darkFibers = parseInt(cable.size) - cable.litFibers;
+                        
+                        // Determine color based on cable type
+                        let color = '#10b981'; // Default green
+                        let weight = 3;
+                        
+                        if (cable.cable_type === 'FEEDER') {
+                            color = '#3b82f6'; // Blue
+                            weight = 5;
+                        } else if (cable.cable_type === 'DISTRIBUTION') {
+                            color = '#10b981'; // Green
+                            weight = 4;
+                        } else if (cable.cable_type.includes('TAIL')) {
+                            color = '#8b5cf6'; // Purple
+                            weight = 3;
+                        }
+                        
+                        const polyline = L.polyline(coords, {
+                            color: color,
+                            weight: weight,
+                            opacity: 0.8,
+                            smoothFactor: 1
+                        }).addTo(map);
+                        
+                        // Store cable reference with endpoints
+                        cable.coordinates = coords;
+                        cable.startPoint = coords[0];
+                        cable.endPoint = coords[coords.length - 1];
+                        cable.polyline = polyline;
+                        
+                        // Create popup with dynamic content
+                        polyline.on('click', function() {
+                            // Find connected splices
+                            const spliceList = [];
+                            Object.entries(splicePoints).forEach(([key, spliceData]) => {
+                                if (spliceData.cables.some(c => c.fondid === cable.fondid)) {
+                                    spliceList.push({
+                                        location: key,
+                                        coords: spliceData.location,
+                                        cableCount: spliceData.cables.length
+                                    });
+                                }
+                            });
+                            
+                            // Build splice HTML
+                            let spliceHTML = '';
+                            if (spliceList.length > 0) {
+                                spliceHTML = '<ul style="margin: 0; padding-left: 1.5rem;">';
+                                spliceList.forEach(splice => {
+                                    spliceHTML += `<li>Splice at ${splice.coords[0].toFixed(6)}, ${splice.coords[1].toFixed(6)} (${splice.cableCount} cables)</li>`;
+                                });
+                                spliceHTML += '</ul>';
+                            } else {
+                                spliceHTML = '<em>No splice points detected</em>';
+                            }
+                            
+                            // Enhanced popup with fiber details
+                            const popupContent = `
+                                <div style="min-width: 300px;">
+                                    <h4 style="margin: 0 0 10px 0; color: var(--primary);">${cable.fondid}</h4>
+                                    <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <strong>Type:</strong> <span>${cable.cable_type}</span>
+                                        <strong>Size:</strong> <span>${cable.size} fibers</span>
+                                        <strong>Lit Fibers:</strong> <span style="color: var(--success);">${cable.litFibers}</span>
+                                        <strong>Dark Fibers:</strong> <span style="color: var(--text-light);">${cable.darkFibers}</span>
+                                        <strong>Utilization:</strong> <span>${Math.round((cable.litFibers / parseInt(cable.size)) * 100)}%</span>
+                                    </div>
+                                    
+                                    <div style="background: var(--surface-2); padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+                                        <strong>Connected Splice Points:</strong>
+                                        <div style="margin-top: 0.5rem; font-size: 0.875rem;">
+                                            ${spliceHTML}
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1rem;">
+                                        <strong>Connections:</strong>
+                                        <div style="font-size: 0.875rem; margin-top: 0.25rem; font-family: monospace; background: var(--surface-2); padding: 0.5rem; border-radius: 4px;">
+                                            ${cable.cable_ct}
+                                        </div>
+                                    </div>
+                                    
+                                    <button onclick="showCableDetail('${cable.fondid}')" 
+                                        style="width: 100%; padding: 0.75rem; background: var(--primary); 
+                                        color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                                        View Fiber Details
+                                    </button>
+                                </div>
+                            `;
+                            
+                            polyline.bindPopup(popupContent).openPopup();
+                        });
+                        
+                        networkLayers.cables[cable.fondid] = polyline;
+                        
+                        // Add label if enabled
+                        if (layerVisibility.labels) {
+                            const midPoint = coords[Math.floor(coords.length / 2)];
+                            const label = L.divIcon({
+                                className: 'cable-label',
+                                html: `<div style="background: white; padding: 2px 6px; border-radius: 3px; 
+                                       font-size: 11px; font-weight: 500; white-space: nowrap; 
+                                       border: 1px solid ${color}; color: ${color};">
+                                       ${cable.fondid}
+                                       </div>`,
+                                iconSize: null
+                            });
+                            const labelMarker = L.marker(midPoint, { icon: label }).addTo(map);
+                            networkLayers.labels[cable.fondid] = labelMarker;
+                        }
+                    }
+                }
+                
+                // Calculate stats
+                totalFibers += parseInt(cable.size) || 0;
+                activeFibers += cable.litFibers || 0;
+            });
+            
+            // Add detected splice points
+            Object.entries(splicePoints).forEach(([key, spliceData]) => {
+                // Ensure all cables have darkFibers calculated
+                spliceData.cables.forEach(cable => {
+                    if (!cable.hasOwnProperty('darkFibers')) {
+                        cable.darkFibers = parseInt(cable.size) - (cable.litFibers || 0);
+                    }
+                });
+                
+                const icon = L.divIcon({
+                    className: 'custom-icon',
+                    html: `<div style="background: var(--primary); color: white; width: 32px; height: 32px; 
+                           border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                           font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 2px solid white;">
+                           ${spliceData.cables.length}
+                           </div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+                
+                const marker = L.marker(spliceData.location, { icon: icon }).addTo(map);
+                
+                // Determine from/to relationships
+                const relationships = inferCableRelationships(spliceData.cables);
+                
+                // Parse splice connections for detailed view
+                const spliceDetails = parseSpliceConnections(spliceData.cables);
+                
+                // Create detailed popup
+                let popupContent = `
+                    <div style="min-width: 350px; max-width: 450px;">
+                        <h4 style="margin: 0 0 10px 0; color: var(--primary);">
+                            Splice Case (${spliceData.cables.length} cables)
+                        </h4>
+                        <div style="margin-bottom: 10px;">
+                            <strong>Location:</strong> ${spliceData.location[0].toFixed(6)}, ${spliceData.location[1].toFixed(6)}
+                        </div>
+                        
+                        <div style="background: var(--surface-2); padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                            <strong>Splice Summary:</strong>
+                            <div style="margin-top: 5px; font-size: 0.875rem;">
+                                • Total Splices: ${spliceDetails.totalSplices}<br>
+                                • Active Fibers: ${spliceDetails.activeFibers}<br>
+                                • Available Capacity: ${spliceDetails.availableCapacity} fibers
+                            </div>
+                        </div>
+                `;
+                
+                if (relationships.from) {
+                    popupContent += `
+                        <div style="background: #e0f2fe; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                            <strong style="color: var(--info);">FROM (Upstream):</strong>
+                            <div style="margin-top: 5px;">
+                                ${relationships.from.fondid}<br>
+                                <span style="font-size: 0.875rem;">
+                                    ${relationships.from.litFibers} lit / ${relationships.from.darkFibers} dark fibers
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (relationships.to.length > 0) {
+                    popupContent += `
+                        <div style="background: #dcfce7; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                            <strong style="color: var(--success);">TO (Downstream):</strong>
+                            <div style="margin-top: 5px;">
+                    `;
+                    relationships.to.forEach(cable => {
+                        popupContent += `
+                            <div style="margin-bottom: 5px;">
+                                • ${cable.fondid}<br>
+                                <span style="font-size: 0.875rem; margin-left: 1rem;">
+                                    ${cable.litFibers} lit / ${cable.darkFibers} dark fibers
+                                </span>
+                            </div>
+                        `;
+                    });
+                    popupContent += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                popupContent += `
+                        <button onclick="showSpliceDetail('${key}')" 
+                            style="width: 100%; padding: 0.75rem; background: var(--primary); 
+                            color: white; border: none; border-radius: 4px; cursor: pointer; 
+                            font-weight: 500; margin-top: 5px;">
+                            View Splice Diagram
+                        </button>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                // Store splice point data
+                spliceData.marker = marker;
+                spliceData.relationships = relationships;
+                networkLayers.splices[key] = marker;
+            });
+            
+            // Update stats
+            document.getElementById('statCables').textContent = network.cables.length;
+            document.getElementById('statSplices').textContent = Object.keys(splicePoints).length;
+            document.getElementById('statFibers').textContent = totalFibers;
+            document.getElementById('statActive').textContent = activeFibers;
+            
+            // Update FSA info
+            const fsaSet = new Set();
+            network.cables.forEach(cable => {
+                const fsaMatch = cable.fondid.match(/^([A-Z]+\d+)-/);
+                if (fsaMatch) {
+                    fsaSet.add(fsaMatch[1]);
+                }
+            });
+            const fsaList = Array.from(fsaSet);
+            document.getElementById('fsaInfo').textContent = fsaList.length > 0 ? 
+                `FSA: ${fsaList.join(', ')}` : '';
+            
+            // Store splice points globally
+            window.detectedSplicePoints = splicePoints;
+            
+            // Update cable splice connections
+            updateCableSpliceInfo();
+            
+            // Update layer statistics
+            updateLayerStatistics();
+            
+            // Fit map to bounds
+            zoomToFit();
+        }
+        
+        // Parse splice connections for detailed view
+        function parseSpliceConnections(cables) {
+            let totalSplices = 0;
+            let activeFibers = 0;
+            let totalCapacity = 0;
+            
+            cables.forEach(cable => {
+                totalCapacity += parseInt(cable.size) || 0;
+                activeFibers += cable.litFibers || 0;
+                
+                // Count individual splices from cable_ct
+                if (cable.cable_ct) {
+                    const spliceMatches = cable.cable_ct.match(/\d+-\d+/g);
+                    if (spliceMatches) {
+                        totalSplices += spliceMatches.length;
+                    }
+                }
+            });
+            
+            return {
+                totalSplices,
+                activeFibers,
+                availableCapacity: totalCapacity - activeFibers
+            };
+        }
+        
+        // Update cable splice info in popups
+        function updateCableSpliceInfo() {
+            if (!window.processedNetwork || !window.detectedSplicePoints) return;
+            
+            window.processedNetwork.cables.forEach(cable => {
+                const spliceList = [];
+                
+                // Find splices this cable connects to
+                Object.entries(window.detectedSplicePoints).forEach(([key, spliceData]) => {
+                    if (spliceData.cables.some(c => c.fondid === cable.fondid)) {
+                        spliceList.push({
+                            location: key,
+                            coords: spliceData.location,
+                            cableCount: spliceData.cables.length
+                        });
+                    }
+                });
+                
+                // Store splice list on cable object for later reference
+                cable.connectedSplices = spliceList;
+            });
+        }
+        
+        // Show cable detail modal
+        function showCableDetail(cableId) {
+            const cable = window.processedNetwork.cables.find(c => c.fondid === cableId);
+            if (!cable) return;
+            
+            document.getElementById('cableDetailTitle').textContent = `Cable: ${cable.fondid}`;
+            
+            // Parse cable connections to show individual fiber splices
+            const connections = parseCableConnectionDetails(cable);
+            
+            let modalContent = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <strong>Cable Type:</strong> ${cable.cable_type}<br>
+                        <strong>Total Size:</strong> ${cable.size} fibers<br>
+                        <strong>Lit Fibers:</strong> <span style="color: var(--success);">${cable.litFibers}</span><br>
+                        <strong>Dark Fibers:</strong> <span style="color: var(--text-light);">${cable.darkFibers}</span>
+                    </div>
+                    <div>
+                        <strong>Utilization:</strong> ${Math.round((cable.litFibers / parseInt(cable.size)) * 100)}%<br>
+                        <strong>Available for Expansion:</strong> ${cable.darkFibers} fibers<br>
+                        <strong>Splice Points:</strong> ${connections.splicePoints.length}
+                    </div>
+                </div>
+                
+                <div class="fiber-visualization">
+                    <h4 style="margin: 0 0 1rem 0;">Fiber Strand Visualization</h4>
+                    <div class="fiber-grid">
+            `;
+            
+            // Create fiber strand visualization
+            for (let i = 1; i <= parseInt(cable.size); i++) {
+                const isLit = connections.litFibers.includes(i);
+                const connectionInfo = connections.fiberDetails[i] || '';
+                
+                modalContent += `
+                    <div class="fiber-strand ${isLit ? 'lit' : 'dark'}">
+                        ${i}
+                        <div class="fiber-strand-tooltip">
+                            Fiber ${i}: ${isLit ? 'LIT' : 'DARK'}
+                            ${connectionInfo ? `<br>${connectionInfo}` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            modalContent += `
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <h4>Connection Details</h4>
+                    <div style="background: var(--surface-2); padding: 1rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                        <pre style="margin: 0; font-size: 0.875rem; white-space: pre-wrap;">${cable.cable_ct}</pre>
+                    </div>
+                </div>
+            `;
+            
+            if (connections.splicePoints.length > 0) {
+                modalContent += `
+                    <div style="margin-top: 1.5rem;">
+                        <h4>Connected Splice Points</h4>
+                        <div style="background: var(--surface-2); padding: 1rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                `;
+                
+                connections.splicePoints.forEach(splice => {
+                    modalContent += `
+                        <div style="margin-bottom: 0.5rem;">
+                            • Location: ${splice.location}<br>
+                            <span style="margin-left: 1rem; font-size: 0.875rem; color: var(--text-light);">
+                                ${splice.cableCount} cables connected
+                            </span>
+                        </div>
+                    `;
+                });
+                
+                modalContent += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('cableDetailBody').innerHTML = modalContent;
+            document.getElementById('cableDetailModal').classList.add('show');
+            document.getElementById('cableDetailContent').classList.add('show');
+        }
+        
+        // Parse cable connection details for fiber visualization
+        function parseCableConnectionDetails(cable) {
+            const litFibers = [];
+            const fiberDetails = {};
+            const splicePoints = [];
+            
+            if (!cable.cable_ct) return { litFibers, fiberDetails, splicePoints };
+            
+            const connections = cable.cable_ct.split(';');
+            
+            connections.forEach(conn => {
+                const trimmedConn = conn.trim();
+                
+                // Skip dead fibers
+                if (trimmedConn.toLowerCase().startsWith('xd')) {
+                    const deadMatch = trimmedConn.match(/xd\s+(\d+)-(\d+)/i);
+                    if (deadMatch) {
+                        const start = parseInt(deadMatch[1]);
+                        const end = parseInt(deadMatch[2]);
+                        for (let i = start; i <= end; i++) {
+                            fiberDetails[i] = 'Dead fiber';
+                        }
+                    }
+                    return;
+                }
+                
+                // Parse active connections
+                const parts = trimmedConn.split(',').map(p => p.trim());
+                if (parts.length >= 2) {
+                    const sourceMatch = parts[0].match(/(\S+)\s+(\d+)-(\d+)/);
+                    const destMatch = parts[1].match(/(\S+)\s+(\d+)-(\d+)/);
+                    
+                    if (sourceMatch && destMatch) {
+                        const sourceDevice = sourceMatch[1];
+                        const sourceStart = parseInt(sourceMatch[2]);
+                        const sourceEnd = parseInt(sourceMatch[3]);
+                        const destDevice = destMatch[1];
+                        
+                        for (let i = sourceStart; i <= sourceEnd; i++) {
+                            litFibers.push(i);
+                            fiberDetails[i] = `Connected to ${destDevice}`;
+                        }
+                        
+                        // Track splice point
+                        if (!splicePoints.some(sp => sp.device === destDevice)) {
+                            splicePoints.push({ device: destDevice });
+                        }
+                    }
+                }
+            });
+            
+            // Find actual splice locations
+            if (window.detectedSplicePoints) {
+                Object.entries(window.detectedSplicePoints).forEach(([key, spliceData]) => {
+                    if (spliceData.cables.some(c => c.fondid === cable.fondid)) {
+                        const existing = splicePoints.find(sp => sp.location === key);
+                        if (!existing) {
+                            splicePoints.push({
+                                location: key,
+                                coords: spliceData.location,
+                                cableCount: spliceData.cables.length
+                            });
+                        }
+                    }
+                });
+            }
+            
+            return { litFibers, fiberDetails, splicePoints };
+        }
+        
+        // Close cable detail modal
+        function closeCableDetailModal() {
+            document.getElementById('cableDetailModal').classList.remove('show');
+            document.getElementById('cableDetailContent').classList.remove('show');
+        }
+        
+        // Show splice detail with diagram
+        function showSpliceDetail(spliceKey) {
+            const spliceData = window.detectedSplicePoints[spliceKey];
+            if (!spliceData) return;
+            
+            const relationships = inferCableRelationships(spliceData.cables);
+            const spliceDetails = parseSpliceConnections(spliceData.cables);
+            
+            document.getElementById('modalTitle').textContent = `Splice Case Details`;
+            
+            let modalContent = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Location</h3>
+                    <div>${spliceData.location[0].toFixed(6)}, ${spliceData.location[1].toFixed(6)}</div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="text-align: center; background: var(--surface-2); padding: 1rem; border-radius: var(--radius-sm);">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">${spliceData.cables.length}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">Cables</div>
+                    </div>
+                    <div style="text-align: center; background: var(--surface-2); padding: 1rem; border-radius: var(--radius-sm);">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--success);">${spliceDetails.totalSplices}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">Splices</div>
+                    </div>
+                    <div style="text-align: center; background: var(--surface-2); padding: 1rem; border-radius: var(--radius-sm);">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--info);">${spliceDetails.availableCapacity}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">Available Fibers</div>
+                    </div>
+                </div>
+                
+                <div class="splice-connection-diagram">
+                    <h4 style="margin: 0 0 1rem 0;">Connection Flow Diagram</h4>
+                    <div class="connection-flow">
+            `;
+            
+            // Build connection flow diagram
+            if (relationships.from) {
+                modalContent += `
+                    <div class="cable-box from">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${relationships.from.fondid}</div>
+                        <div style="font-size: 0.875rem;">${relationships.from.cable_type}</div>
+                        <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                            ${relationships.from.litFibers} lit / ${relationships.from.darkFibers} dark
+                        </div>
+                        <div class="fiber-count-label">${relationships.from.size} fibers</div>
+                    </div>
+                    
+                    <div class="connection-line left"></div>
+                `;
+            }
+            
+            modalContent += `
+                    <div class="splice-box">
+                        SPLICE<br>
+                        ${spliceDetails.totalSplices}
+                    </div>
+            `;
+            
+            if (relationships.to.length > 0) {
+                modalContent += `
+                    <div class="connection-line right"></div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                `;
+                
+                relationships.to.forEach(cable => {
+                    modalContent += `
+                        <div class="cable-box to">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem;">${cable.fondid}</div>
+                            <div style="font-size: 0.875rem;">${cable.cable_type}</div>
+                            <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                                ${cable.litFibers} lit / ${cable.darkFibers} dark
+                            </div>
+                            <div class="fiber-count-label">${cable.size} fibers</div>
+                        </div>
+                    `;
+                });
+                
+                modalContent += `
+                    </div>
+                `;
+            }
+            
+            modalContent += `
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <h4>Detailed Connections</h4>
+                    <table class="splice-table" style="width: 100%; margin-top: 0.5rem;">
+                        <thead>
+                            <tr>
+                                <th>Cable</th>
+                                <th>Type</th>
+                                <th>Connection String</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            spliceData.cables.forEach(cable => {
+                modalContent += `
+                    <tr>
+                        <td>${cable.fondid}</td>
+                        <td>${cable.cable_type}</td>
+                        <td style="font-family: monospace; font-size: 0.75rem;">${cable.cable_ct}</td>
+                    </tr>
+                `;
+            });
+            
+            modalContent += `
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button onclick="generateSpliceDocForPoint('${spliceKey}')" 
+                    style="width: 100%; margin-top: 1.5rem; padding: 0.75rem; background: var(--primary); 
+                    color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                    Generate Splice Document
+                </button>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = modalContent;
+            document.getElementById('spliceModal').classList.add('show');
+        }
+        
+        // Toggle layer panel
+        function toggleLayerPanel() {
+            const panel = document.getElementById('layerControlPanel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                updateLayerStatistics();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+        
+        // Toggle cable type visibility
+        function toggleCableType(type) {
+            layerVisibility[type] = !layerVisibility[type];
+            
+            // Update toggle UI
+            const toggle = event.currentTarget;
+            toggle.classList.toggle('active');
+            
+            // Update map
+            window.processedNetwork.cables.forEach(cable => {
+                if (cable.cable_type === type || (type === 'TAIL' && cable.cable_type.includes('TAIL'))) {
+                    if (layerVisibility[type]) {
+                        if (!map.hasLayer(networkLayers.cables[cable.fondid])) {
+                            map.addLayer(networkLayers.cables[cable.fondid]);
+                        }
+                    } else {
+                        if (map.hasLayer(networkLayers.cables[cable.fondid])) {
+                            map.removeLayer(networkLayers.cables[cable.fondid]);
+                        }
+                    }
+                }
+            });
+            
+            updateLayerStatistics();
+        }
+        
+        // Toggle feature visibility
+        function toggleFeature(feature) {
+            layerVisibility[feature] = !layerVisibility[feature];
+            
+            // Update toggle UI
+            const toggle = event.currentTarget;
+            toggle.classList.toggle('active');
+            
+            if (feature === 'splices') {
+                Object.values(networkLayers.splices).forEach(marker => {
+                    if (layerVisibility.splices) {
+                        if (!map.hasLayer(marker)) map.addLayer(marker);
+                    } else {
+                        if (map.hasLayer(marker)) map.removeLayer(marker);
+                    }
+                });
+            } else if (feature === 'labels') {
+                // Remove existing labels
+                Object.values(networkLayers.labels).forEach(label => {
+                    if (map.hasLayer(label)) map.removeLayer(label);
+                });
+                networkLayers.labels = {};
+                
+                // Add labels if enabled
+                if (layerVisibility.labels) {
+                    window.processedNetwork.cables.forEach(cable => {
+                        if (cable.coordinates && cable.coordinates.length > 0) {
+                            const midPoint = cable.coordinates[Math.floor(cable.coordinates.length / 2)];
+                            const color = cable.cable_type === 'FEEDER' ? '#3b82f6' : 
+                                        cable.cable_type === 'DISTRIBUTION' ? '#10b981' : '#8b5cf6';
+                            
+                            const label = L.divIcon({
+                                className: 'cable-label',
+                                html: `<div style="background: white; padding: 2px 6px; border-radius: 3px; 
+                                       font-size: 11px; font-weight: 500; white-space: nowrap; 
+                                       border: 1px solid ${color}; color: ${color};">
+                                       ${cable.fondid}
+                                       </div>`,
+                                iconSize: null
+                            });
+                            const labelMarker = L.marker(midPoint, { icon: label }).addTo(map);
+                            networkLayers.labels[cable.fondid] = labelMarker;
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Apply dark fiber filter
+        function applyDarkFiberFilter() {
+            const minDarkFibers = parseInt(document.getElementById('darkFiberFilter').value) || 0;
+            activeFilters.darkFibers = minDarkFibers || null;
+            
+            applyFilters();
+        }
+        
+        // Apply cable ID filter
+        function applyCableIdFilter() {
+            const filterText = document.getElementById('cableIdFilter').value.trim().toUpperCase();
+            activeFilters.cableId = filterText || null;
+            
+            applyFilters();
+        }
+        
+        // Apply all active filters
+        function applyFilters() {
+            window.processedNetwork.cables.forEach(cable => {
+                let shouldShow = true;
+                
+                // Check cable type visibility
+                if (!layerVisibility[cable.cable_type] && 
+                    !(cable.cable_type.includes('TAIL') && layerVisibility['TAIL'])) {
+                    shouldShow = false;
+                }
+                
+                // Check dark fiber filter
+                if (shouldShow && activeFilters.darkFibers !== null) {
+                    if (cable.darkFibers < activeFilters.darkFibers) {
+                        shouldShow = false;
+                    }
+                }
+                
+                // Check cable ID filter
+                if (shouldShow && activeFilters.cableId !== null) {
+                    if (!cable.fondid.includes(activeFilters.cableId)) {
+                        shouldShow = false;
+                    }
+                }
+                
+                // Update cable visibility
+                if (shouldShow) {
+                    if (!map.hasLayer(networkLayers.cables[cable.fondid])) {
+                        map.addLayer(networkLayers.cables[cable.fondid]);
+                    }
+                } else {
+                    if (map.hasLayer(networkLayers.cables[cable.fondid])) {
+                        map.removeLayer(networkLayers.cables[cable.fondid]);
+                    }
+                }
+            });
+            
+            updateLayerStatistics();
+        }
+        
+        // Update layer statistics
+        function updateLayerStatistics() {
+            if (!window.processedNetwork) return;
+            
+            let visibleCount = 0;
+            let totalDarkFibers = 0;
+            let totalLitFibers = 0;
+            let totalFibers = 0;
+            
+            window.processedNetwork.cables.forEach(cable => {
+                if (map.hasLayer(networkLayers.cables[cable.fondid])) {
+                    visibleCount++;
+                    totalDarkFibers += cable.darkFibers || 0;
+                    totalLitFibers += cable.litFibers || 0;
+                    totalFibers += parseInt(cable.size) || 0;
+                }
+            });
+            
+            document.getElementById('visibleCablesCount').textContent = visibleCount;
+            document.getElementById('totalDarkFibers').textContent = totalDarkFibers;
+            document.getElementById('avgUtilization').textContent = 
+                totalFibers > 0 ? Math.round((totalLitFibers / totalFibers) * 100) + '%' : '0%';
+        }
+        
+        // Calculate lit fibers for a cable
+        function calculateLitFibers(cable) {
+            if (!cable.cable_ct) return 0;
+            
+            let totalLit = 0;
+            const connections = cable.cable_ct.split(';');
+            
+            connections.forEach(conn => {
+                const trimmedConn = conn.trim();
+                
+                // Skip dead fibers
+                if (trimmedConn.toLowerCase().startsWith('xd')) {
+                    return;
+                }
+                
+                // Parse active connections
+                const rangeMatch = trimmedConn.match(/(\d+)-(\d+)/g);
+                if (rangeMatch) {
+                    rangeMatch.forEach(range => {
+                        const [start, end] = range.split('-').map(n => parseInt(n));
+                        if (!isNaN(start) && !isNaN(end)) {
+                            totalLit += (end - start + 1);
+                        }
+                    });
+                }
+            });
+            
+            return totalLit;
+        }
+        
+        // Detect splice points from cable endpoints
+        function detectSplicePoints(cables) {
+            const splicePoints = {};
+            const tolerance = 0.000001; // About 0.1 meter tolerance
+            
+            cables.forEach(cable => {
+                if (!cable.wkt_geom) return;
+                
+                const coords = parseMultiLineString(cable.wkt_geom);
+                if (coords.length === 0) return;
+                
+                // Check both endpoints
+                const endpoints = [
+                    { point: coords[0], type: 'start' },
+                    { point: coords[coords.length - 1], type: 'end' }
+                ];
+                
+                endpoints.forEach(({ point, type }) => {
+                    // Create a key for this location
+                    const key = `${point[0].toFixed(6)},${point[1].toFixed(6)}`;
+                    
+                    // Check if we already have a splice point near this location
+                    let foundNearby = false;
+                    for (const [existingKey, spliceData] of Object.entries(splicePoints)) {
+                        const [existingLat, existingLng] = existingKey.split(',').map(parseFloat);
+                        const distance = Math.sqrt(
+                            Math.pow(point[0] - existingLat, 2) + 
+                            Math.pow(point[1] - existingLng, 2)
+                        );
+                        
+                        if (distance < tolerance) {
+                            // Add to existing splice point
+                            spliceData.cables.push({ ...cable, connectionType: type });
+                            foundNearby = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!foundNearby) {
+                        // Create new splice point
+                        splicePoints[key] = {
+                            location: point,
+                            cables: [{ ...cable, connectionType: type }]
+                        };
+                    }
+                });
+            });
+            
+            // Filter out points with only one cable (not splice points)
+            const actualSplicePoints = {};
+            Object.entries(splicePoints).forEach(([key, data]) => {
+                if (data.cables.length > 1) {
+                    actualSplicePoints[key] = data;
+                }
+            });
+            
+            return actualSplicePoints;
+        }
+        
+        // Infer cable relationships based on lit fiber counts
+        function inferCableRelationships(cables) {
+            // Calculate dark fibers for each cable
+            cables.forEach(cable => {
+                if (!cable.darkFibers) {
+                    cable.darkFibers = parseInt(cable.size) - (cable.litFibers || 0);
+                }
+            });
+            
+            // Sort cables by lit fiber count (descending)
+            const sortedCables = cables.sort((a, b) => {
+                const aLit = a.litFibers || 0;
+                const bLit = b.litFibers || 0;
+                return bLit - aLit;
+            });
+            
+            // The cable with the most lit fibers is the "from" (upstream)
+            const fromCable = sortedCables[0];
+            const toCables = sortedCables.slice(1);
+            
+            return {
+                from: fromCable,
+                to: toCables
+            };
+        }
+        
+        // Parse WKT functions
+        function parseMultiLineString(wkt) {
+            const coords = [];
+            const matches = wkt.match(/\(([^)]+)\)/g);
+            
+            if (matches) {
+                matches.forEach(match => {
+                    const coordPairs = match.replace(/[()]/g, '').split(',');
+                    coordPairs.forEach(pair => {
+                        const [lon, lat] = pair.trim().split(' ').map(parseFloat);
+                        if (!isNaN(lon) && !isNaN(lat)) {
+                            coords.push([
+                                Math.round(lat * 10000000) / 10000000,
+                                Math.round(lon * 10000000) / 10000000
+                            ]);
+                        }
+                    });
+                });
+            }
+            
+            return coords;
+        }
+        
+        function parsePoint(wkt) {
+            const match = wkt.match(/Point \(([^)]+)\)/);
+            if (match) {
+                const [lon, lat] = match[1].split(' ').map(parseFloat);
+                return [
+                    Math.round(lat * 10000000) / 10000000,
+                    Math.round(lon * 10000000) / 10000000
+                ];
+            }
+            return null;
+        }
+        
+        // Map functions
+        function zoomToFit() {
+            const allCoords = [];
+            
+            Object.values(networkLayers.cables).forEach(layer => {
+                allCoords.push(...layer.getLatLngs());
+            });
+            
+            Object.values(networkLayers.splices).forEach(marker => {
+                allCoords.push(marker.getLatLng());
+            });
+            
+            if (allCoords.length > 0) {
+                const bounds = L.latLngBounds(allCoords);
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+        
+        function toggleLabels() {
+            layerVisibility.labels = !layerVisibility.labels;
+            
+            // Remove existing labels
+            Object.values(networkLayers.labels).forEach(label => {
+                if (map.hasLayer(label)) map.removeLayer(label);
+            });
+            networkLayers.labels = {};
+            
+            // Add labels if enabled
+            if (layerVisibility.labels && window.processedNetwork) {
+                window.processedNetwork.cables.forEach(cable => {
+                    if (cable.coordinates && cable.coordinates.length > 0 && 
+                        map.hasLayer(networkLayers.cables[cable.fondid])) {
+                        const midPoint = cable.coordinates[Math.floor(cable.coordinates.length / 2)];
+                        const color = cable.cable_type === 'FEEDER' ? '#3b82f6' : 
+                                    cable.cable_type === 'DISTRIBUTION' ? '#10b981' : '#8b5cf6';
+                        
+                        const label = L.divIcon({
+                            className: 'cable-label',
+                            html: `<div style="background: white; padding: 2px 6px; border-radius: 3px; 
+                                   font-size: 11px; font-weight: 500; white-space: nowrap; 
+                                   border: 1px solid ${color}; color: ${color};">
+                                   ${cable.fondid}
+                                   </div>`,
+                            iconSize: null
+                        });
+                        const labelMarker = L.marker(midPoint, { icon: label }).addTo(map);
+                        networkLayers.labels[cable.fondid] = labelMarker;
+                    }
+                });
+            }
+        }
+        
+        function exportKML() {
+            if (!window.processedNetwork || !window.detectedSplicePoints) {
+                alert('Please process network data first');
+                return;
+            }
+            
+            // Create KML structure
+            let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>Phoenix Fiber Network - ${new Date().toISOString().split('T')[0]}</name>
+    <description>Fiber network export with splice documentation</description>
+    
+    <!-- Cable Styles -->
+    <Style id="feederStyle">
+        <LineStyle>
+            <color>ffff0000</color>
+            <width>4</width>
+        </LineStyle>
+    </Style>
+    <Style id="distributionStyle">
+        <LineStyle>
+            <color>ff00ff00</color>
+            <width>3</width>
+        </LineStyle>
+    </Style>
+    <Style id="tailStyle">
+        <LineStyle>
+            <color>ff800080</color>
+            <width>2</width>
+        </LineStyle>
+    </Style>
+    <Style id="spliceStyle">
+        <IconStyle>
+            <Icon>
+                <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+            </Icon>
+            <color>ffff6b35</color>
+        </IconStyle>
+    </Style>
+    
+    <!-- Cables Folder -->
+    <Folder>
+        <name>Fiber Cables</name>`;
+            
+            // Add cables
+            window.processedNetwork.cables.forEach(cable => {
+                if (cable.wkt_geom) {
+                    const coords = parseMultiLineString(cable.wkt_geom);
+                    if (coords.length > 0) {
+                        let style = 'distributionStyle';
+                        if (cable.cable_type === 'FEEDER') style = 'feederStyle';
+                        else if (cable.cable_type.includes('TAIL')) style = 'tailStyle';
+                        
+                        kml += `
+        <Placemark>
+            <name>${cable.fondid}</name>
+            <description>
+                <![CDATA[
+                    <b>Type:</b> ${cable.cable_type}<br>
+                    <b>Size:</b> ${cable.size} fibers<br>
+                    <b>Lit Fibers:</b> ${cable.litFibers || 0}<br>
+                    <b>Connections:</b> ${cable.cable_ct}
+                ]]>
+            </description>
+            <styleUrl>#${style}</styleUrl>
+            <LineString>
+                <coordinates>`;
+                        
+                        coords.forEach(coord => {
+                            kml += `${coord[1]},${coord[0]},0 `;
+                        });
+                        
+                        kml += `</coordinates>
+            </LineString>
+        </Placemark>`;
+                    }
+                }
+            });
+            
+            kml += `
+    </Folder>
+    
+    <!-- Splice Points Folder -->
+    <Folder>
+        <name>Splice Points</name>`;
+            
+            // Add splice points
+            Object.entries(window.detectedSplicePoints).forEach(([key, spliceData]) => {
+                const relationships = inferCableRelationships(spliceData.cables);
+                
+                kml += `
+        <Placemark>
+            <name>Splice - ${spliceData.cables.length} cables</name>
+            <description>
+                <![CDATA[
+                    <h3>Splice Point</h3>
+                    <b>Location:</b> ${spliceData.location[0].toFixed(6)}, ${spliceData.location[1].toFixed(6)}<br>
+                    <b>Cables:</b> ${spliceData.cables.length}<br>
+                    <hr>
+                    <b>FROM:</b> ${relationships.from ? relationships.from.fondid : 'Unknown'}<br>
+                    <b>TO:</b><br>`;
+                
+                relationships.to.forEach(cable => {
+                    kml += `• ${cable.fondid} (${cable.litFibers} lit)<br>`;
+                });
+                
+                kml += `
+                    <hr>
+                    <a href="#splice-doc-${key.replace(/[,.-]/g, '_')}">View Splice Document</a>
+                ]]>
+            </description>
+            <styleUrl>#spliceStyle</styleUrl>
+            <Point>
+                <coordinates>${spliceData.location[1]},${spliceData.location[0]},0</coordinates>
+            </Point>
+        </Placemark>`;
+            });
+            
+            kml += `
+    </Folder>
+</Document>
+</kml>`;
+            
+            // Convert to KMZ (for now just download as KML)
+            const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phoenix_fiber_network_${new Date().toISOString().split('T')[0]}.kml`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Export Complete', 'KML file has been downloaded');
+        }
+        
+        // Generate splice document for a specific point
+        function generateSpliceDocForPoint(spliceKey) {
+            const spliceData = window.detectedSplicePoints[spliceKey];
+            if (!spliceData) return;
+            
+            // Switch to splicing tab programmatically
+            document.querySelectorAll('.nav-tab').forEach((t, i) => {
+                t.classList.remove('active');
+                if (i === 2) t.classList.add('active'); // Splicing tab is 3rd (index 2)
+            });
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('splicing-panel').classList.add('active');
+            
+            // Clear existing and generate new
+            const container = document.getElementById('spliceMatrixContainer');
+            container.innerHTML = '';
+            
+            const relationships = inferCableRelationships(spliceData.cables);
+            
+            // Create splice matrix for this point
+            const matrixDiv = document.createElement('div');
+            matrixDiv.className = 'splice-matrix';
+            
+            const header = document.createElement('div');
+            header.className = 'splice-matrix-header';
+            header.innerHTML = `
+                <h3 class="splice-matrix-title">Splice Point - ${spliceData.location[0].toFixed(6)}, ${spliceData.location[1].toFixed(6)}</h3>
+                <span style="font-size: 0.875rem; color: var(--text-light);">
+                    ${spliceData.cables.length} cables connected
+                </span>
+            `;
+            matrixDiv.appendChild(header);
+            
+            // Create detailed table
+            const table = document.createElement('table');
+            table.className = 'splice-table';
+            
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Direction</th>
+                    <th>Cable ID</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Lit Fibers</th>
+                    <th>Utilization</th>
+                    <th>Connection Details</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            const tbody = document.createElement('tbody');
+            
+            // Add FROM cable
+            if (relationships.from) {
+                const row = document.createElement('tr');
+                row.style.background = '#e0f2fe';
+                row.innerHTML = `
+                    <td><strong style="color: var(--info);">FROM ↓</strong></td>
+                    <td>${relationships.from.fondid}</td>
+                    <td>${relationships.from.cable_type}</td>
+                    <td>${relationships.from.size}</td>
+                    <td>${relationships.from.litFibers}</td>
+                    <td>${Math.round((relationships.from.litFibers / parseInt(relationships.from.size)) * 100)}%</td>
+                    <td style="font-size: 0.75rem; font-family: monospace;">${relationships.from.cable_ct}</td>
+                `;
+                tbody.appendChild(row);
+            }
+            
+            // Add TO cables
+            relationships.to.forEach(cable => {
+                const row = document.createElement('tr');
+                row.style.background = '#dcfce7';
+                row.innerHTML = `
+                    <td><strong style="color: var(--success);">TO →</strong></td>
+                    <td>${cable.fondid}</td>
+                    <td>${cable.cable_type}</td>
+                    <td>${cable.size}</td>
+                    <td>${cable.litFibers}</td>
+                    <td>${Math.round((cable.litFibers / parseInt(cable.size)) * 100)}%</td>
+                    <td style="font-size: 0.75rem; font-family: monospace;">${cable.cable_ct}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            table.appendChild(tbody);
+            matrixDiv.appendChild(table);
+            container.appendChild(matrixDiv);
+            
+            showNotification('Splice Document Generated', 'View in the Splicing Docs tab');
+        }
+        
+        function printMap() {
+            window.print();
+        }
+        
+        function togglePanel(btn) {
+            const panel = btn.closest('.floating-panel');
+            panel.style.display = 'none';
+        }
+        
+        function showSpliceDetail(spliceId) {
+            const splice = window.processedNetwork.splices.find(s => s.fondid === spliceId);
+            if (!splice) return;
+            
+            const connections = findSpliceConnections(spliceId);
+            
+            document.getElementById('modalTitle').textContent = `Splice Point: ${spliceId}`;
+            const modalBody = document.getElementById('modalBody');
+            
+            let html = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Basic Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <strong>FDA:</strong> ${splice.fda || '-'}
+                        </div>
+                        <div>
+                            <strong>FSA:</strong> ${splice.fsa || '-'}
+                        </div>
+                        <div>
+                            <strong>Placement:</strong> ${splice.placement || '-'}
+                        </div>
+                        <div>
+                            <strong>Spec:</strong> ${splice.spec || '-'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Connections</h3>
+            `;
+            
+            if (connections.length > 0) {
+                html += '<table class="splice-table" style="width: 100%;">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Cable</th>
+                            <th>Input Fibers</th>
+                            <th>Output Device</th>
+                            <th>Output Fibers</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                
+                connections.forEach(conn => {
+                    const count = conn.sourceRange[1] - conn.sourceRange[0] + 1;
+                    html += `
+                        <tr>
+                            <td>${conn.cable}</td>
+                            <td>${conn.sourceRange[0]}-${conn.sourceRange[1]}</td>
+                            <td>${conn.destDevice}</td>
+                            <td>${conn.destRange[0]}-${conn.destRange[1]}</td>
+                            <td>${count}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+            } else {
+                html += '<p style="color: var(--text-light);">No connection data available</p>';
+            }
+            
+            html += '</div>';
+            
+            modalBody.innerHTML = html;
+            document.getElementById('spliceModal').classList.add('show');
+        }
+        
+        function closeSpliceModal() {
+            document.getElementById('spliceModal').classList.remove('show');
+        }
+        
+        // Detect all splices manually
+        function detectAllSplices() {
+            if (!window.processedNetwork) {
+                alert('Please process network data first');
+                return;
+            }
+            
+            // Re-run splice detection
+            displayNetwork(window.processedNetwork);
+            
+            const spliceCount = Object.keys(window.detectedSplicePoints || {}).length;
+            showNotification(
+                'Splice Detection Complete', 
+                `Found ${spliceCount} splice points where cables connect`
+            );
+        }
+        
+        // Batch process FSA
+        function batchProcessFSA() {
+            if (!window.processedNetwork || !window.detectedSplicePoints) {
+                alert('Please process network data first');
+                return;
+            }
+            
+            // Get unique FSA from data
+            const fsaSet = new Set();
+            window.processedNetwork.cables.forEach(cable => {
+                // Extract FSA from fondid (assumes format like AUGS04-...)
+                const fsaMatch = cable.fondid.match(/^([A-Z]+\d+)-/);
+                if (fsaMatch) {
+                    fsaSet.add(fsaMatch[1]);
+                }
+            });
+            
+            const fsaList = Array.from(fsaSet);
+            
+            if (fsaList.length === 0) {
+                alert('No FSA identifiers found in cable data');
+                return;
+            }
+            
+            // Create batch processing dialog
+            const fsaName = fsaList[0] || 'Unknown';
+            if (confirm(`Batch process FSA: ${fsaName}?\n\nThis will:\n- Validate all connections\n- Generate splice documents\n- Prepare KML export`)) {
+                
+                // Validate connections
+                const validationResults = validateNetworkConnections();
+                
+                // Generate all splice documents
+                const container = document.getElementById('spliceMatrixContainer');
+                container.innerHTML = '';
+                
+                // Add FSA header
+                const fsaHeader = document.createElement('div');
+                fsaHeader.style.cssText = 'background: var(--surface); padding: 1.5rem; margin-bottom: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow);';
+                fsaHeader.innerHTML = `
+                    <h2 style="color: var(--primary); margin-bottom: 0.5rem;">FSA: ${fsaName}</h2>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--info);">${window.processedNetwork.cables.length}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Cables</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--success);">${Object.keys(window.detectedSplicePoints).length}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Splice Points</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">${validationResults.warnings.length}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Warnings</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold; color: ${validationResults.errors.length > 0 ? 'var(--error)' : 'var(--success)'};">${validationResults.errors.length}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Errors</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(fsaHeader);
+                
+                // Add validation results if any
+                if (validationResults.warnings.length > 0 || validationResults.errors.length > 0) {
+                    const validationDiv = document.createElement('div');
+                    validationDiv.style.cssText = 'background: var(--surface); padding: 1.5rem; margin-bottom: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow);';
+                    
+                    let validationHTML = '<h3 style="margin-bottom: 1rem;">Validation Results</h3>';
+                    
+                    if (validationResults.errors.length > 0) {
+                        validationHTML += '<div style="margin-bottom: 1rem;"><strong style="color: var(--error);">Errors:</strong><ul style="margin-top: 0.5rem;">';
+                        validationResults.errors.forEach(error => {
+                            validationHTML += `<li style="color: var(--error);">${error}</li>`;
+                        });
+                        validationHTML += '</ul></div>';
+                    }
+                    
+                    if (validationResults.warnings.length > 0) {
+                        validationHTML += '<div><strong style="color: var(--warning);">Warnings:</strong><ul style="margin-top: 0.5rem;">';
+                        validationResults.warnings.forEach(warning => {
+                            validationHTML += `<li style="color: var(--warning);">${warning}</li>`;
+                        });
+                        validationHTML += '</ul></div>';
+                    }
+                    
+                    validationDiv.innerHTML = validationHTML;
+                    container.appendChild(validationDiv);
+                }
+                
+                // Generate splice document for each splice point
+                Object.entries(window.detectedSplicePoints).forEach(([key, spliceData], index) => {
+                    const relationships = inferCableRelationships(spliceData.cables);
+                    
+                    const matrixDiv = document.createElement('div');
+                    matrixDiv.className = 'splice-matrix';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'splice-matrix-header';
+                    header.innerHTML = `
+                        <h3 class="splice-matrix-title">Splice Point ${index + 1} - ${spliceData.location[0].toFixed(6)}, ${spliceData.location[1].toFixed(6)}</h3>
+                        <span style="font-size: 0.875rem; color: var(--text-light);">
+                            ${spliceData.cables.length} cables
+                        </span>
+                    `;
+                    matrixDiv.appendChild(header);
+                    
+                    // Create table
+                    const table = createBatchSpliceTable(spliceData, relationships);
+                    matrixDiv.appendChild(table);
+                    
+                    container.appendChild(matrixDiv);
+                });
+                
+                // Switch to splicing tab
+                document.querySelectorAll('.nav-tab').forEach((t, i) => {
+                    t.classList.remove('active');
+                    if (i === 2) t.classList.add('active'); // Splicing tab is 3rd (index 2)
+                });
+                document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('splicing-panel').classList.add('active');
+                
+                showNotification(
+                    'Batch Processing Complete', 
+                    `Processed ${fsaName} with ${Object.keys(window.detectedSplicePoints).length} splice points`
+                );
+            }
+        }
+        
+        // Validate network connections
+        function validateNetworkConnections() {
+            const errors = [];
+            const warnings = [];
+            
+            // Check for cables with no connections
+            window.processedNetwork.cables.forEach(cable => {
+                if (!cable.cable_ct || cable.cable_ct.trim() === '') {
+                    warnings.push(`Cable ${cable.fondid} has no connection data`);
+                }
+                
+                // Check if dead fibers exceed cable size
+                const deadMatch = cable.cable_ct.match(/xd\s+(\d+)-(\d+)/i);
+                if (deadMatch) {
+                    const deadStart = parseInt(deadMatch[1]);
+                    const deadEnd = parseInt(deadMatch[2]);
+                    if (deadEnd > parseInt(cable.size)) {
+                        errors.push(`Cable ${cable.fondid}: Dead fiber range (${deadStart}-${deadEnd}) exceeds cable size (${cable.size})`);
+                    }
+                }
+            });
+            
+            // Check splice points
+            Object.entries(window.detectedSplicePoints).forEach(([key, spliceData]) => {
+                if (spliceData.cables.length === 1) {
+                    warnings.push(`Splice point at ${key} has only one cable connected`);
+                }
+                
+                // Check fiber count continuity
+                const relationships = inferCableRelationships(spliceData.cables);
+                if (relationships.from && relationships.to.length > 0) {
+                    const incomingFibers = relationships.from.litFibers;
+                    const outgoingFibers = relationships.to.reduce((sum, cable) => sum + cable.litFibers, 0);
+                    
+                    if (outgoingFibers > incomingFibers) {
+                        errors.push(`Splice at ${key}: Outgoing fibers (${outgoingFibers}) exceed incoming fibers (${incomingFibers})`);
+                    }
+                }
+            });
+            
+            return { errors, warnings };
+        }
+        
+        // Create batch splice table
+        function createBatchSpliceTable(spliceData, relationships) {
+            const table = document.createElement('table');
+            table.className = 'splice-table';
+            
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>Direction</th>
+                    <th>Cable ID</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Lit</th>
+                    <th>Dead</th>
+                    <th>Util %</th>
+                    <th>Connections</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            const tbody = document.createElement('tbody');
+            
+            // Add FROM cable
+            if (relationships.from) {
+                const cable = relationships.from;
+                const deadFibers = parseInt(cable.size) - cable.litFibers;
+                const row = document.createElement('tr');
+                row.style.background = '#e0f2fe';
+                row.innerHTML = `
+                    <td><strong style="color: var(--info);">FROM ↓</strong></td>
+                    <td>${cable.fondid}</td>
+                    <td>${cable.cable_type}</td>
+                    <td>${cable.size}</td>
+                    <td>${cable.litFibers}</td>
+                    <td>${deadFibers}</td>
+                    <td>${Math.round((cable.litFibers / parseInt(cable.size)) * 100)}%</td>
+                    <td style="font-size: 0.75rem; font-family: monospace;">${cable.cable_ct}</td>
+                `;
+                tbody.appendChild(row);
+            }
+            
+            // Add TO cables
+            relationships.to.forEach(cable => {
+                const deadFibers = parseInt(cable.size) - cable.litFibers;
+                const row = document.createElement('tr');
+                row.style.background = '#dcfce7';
+                row.innerHTML = `
+                    <td><strong style="color: var(--success);">TO →</strong></td>
+                    <td>${cable.fondid}</td>
+                    <td>${cable.cable_type}</td>
+                    <td>${cable.size}</td>
+                    <td>${cable.litFibers}</td>
+                    <td>${deadFibers}</td>
+                    <td>${Math.round((cable.litFibers / parseInt(cable.size)) * 100)}%</td>
+                    <td style="font-size: 0.75rem; font-family: monospace;">${cable.cable_ct}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            table.appendChild(tbody);
+            return table;
+        }
+        
+        // Initialize on load
+        window.onload = function() {
+            initializeGrids();
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    // Close any open modals
+                    if (document.getElementById('spliceModal').classList.contains('show')) {
+                        closeSpliceModal();
+                    }
+                    if (document.getElementById('cableDetailModal').classList.contains('show')) {
+                        closeCableDetailModal();
+                    }
+                }
+            });
+        };
+    </script>
+</body>
+</html>
