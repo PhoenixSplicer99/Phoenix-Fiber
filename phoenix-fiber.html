@@ -1,0 +1,4393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoenix Fiber - Modern Fiber Management</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <!-- Add SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #DC2626;
+            --primary-light: #FFB700;
+            --secondary: #1e293b;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #334155;
+            --text-light: #64748b;
+            --success: #10b981;
+            --info: #3b82f6;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius: 0.75rem;
+            --radius-sm: 0.5rem;
+            --radius-lg: 1rem;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--surface-2);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Modern Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 50%, var(--primary-dark) 100%);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Tab Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--surface-3);
+            padding: 0.25rem;
+            border-radius: var(--radius);
+        }
+        
+        .nav-tab {
+            padding: 0.5rem 1.5rem;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .nav-tab:hover {
+            color: var(--text);
+        }
+        
+        .nav-tab.active {
+            background: var(--surface);
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* Main Layout */
+        .main-container {
+            margin-top: 73px;
+            height: calc(100vh - 73px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Content Panels */
+        .content-panel {
+            display: none;
+            height: 100%;
+        }
+        
+        .content-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Data Input Panel */
+        .data-input-panel {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .input-grid-3col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .input-grid, .input-grid-3col {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .input-section {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-header {
+            background: var(--surface-2);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .input-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .input-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        /* Excel-like Grid */
+        .grid-toolbar {
+            background: var(--surface);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .grid-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .grid-btn {
+            padding: 0.375rem 0.75rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .grid-btn:hover {
+            background: var(--surface-3);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .grid-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: var(--surface);
+        }
+        
+        .data-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .data-grid th {
+            position: sticky;
+            top: 0;
+            background: var(--surface-3);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            z-index: 10;
+        }
+        
+        .data-grid th.row-number-header {
+            width: 50px;
+            text-align: center;
+            background: var(--surface-2);
+        }
+        
+        .data-grid td {
+            padding: 0;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+        
+        .data-grid tr:hover {
+            background: var(--surface-2);
+        }
+        
+        .data-grid td.row-number {
+            width: 50px;
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--surface-2);
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        
+        .grid-input {
+            width: 100%;
+            height: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            font-size: 0.875rem;
+            font-family: inherit;
+            background: transparent;
+            color: var(--text);
+        }
+        
+        .grid-input:focus {
+            outline: none;
+            background: var(--surface-2);
+            box-shadow: inset 0 0 0 2px var(--primary);
+        }
+        
+        .grid-input.valid {
+            background: #f0fdf4;
+        }
+        
+        .grid-input.error {
+            background: #fef2f2;
+        }
+        
+        /* Detection Status */
+        .detection-status {
+            padding: 1rem;
+            background: var(--surface-2);
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+        
+        .detection-status.show {
+            display: block;
+        }
+        
+        .detection-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(to right, #dbeafe, #e0f2fe);
+            border: 1px solid #60a5fa;
+            border-radius: var(--radius-sm);
+            color: #1e40af;
+        }
+        
+        .detection-icon {
+            font-size: 1.25rem;
+        }
+        
+        .detection-content {
+            flex: 1;
+        }
+        
+        .detection-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detection-description {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .detection-action {
+            padding: 0.5rem 1rem;
+            background: var(--info);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .detection-action:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Map Panel */
+        .map-panel {
+            position: relative;
+            height: 100%;
+        }
+        
+        #networkMap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Floating Panels */
+        .floating-panel {
+            position: absolute;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+            max-width: 90%;
+        }
+        
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .panel-close {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-light);
+        }
+        
+        .panel-close:hover {
+            background: var(--surface-3);
+            color: var(--text);
+        }
+        
+        /* Network Stats Panel */
+        .stats-panel {
+            top: 1.5rem;
+            left: 1.5rem;
+            width: 320px;
+        }
+        
+        .stats-grid {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+        
+        .stat-card:last-child {
+            grid-column: 1 / -1;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+        
+        /* Search Panel */
+        .search-panel {
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 320px;
+        }
+        
+        .search-input-wrapper {
+            padding: 1rem;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 1.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+        
+        .search-results {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0 1rem 1rem;
+        }
+        
+        .search-result {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .search-result:hover {
+            background: var(--surface-3);
+            transform: translateX(4px);
+        }
+        
+        .search-result-title {
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        
+        .search-result-details {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+        
+        /* Legend */
+        .legend-panel {
+            bottom: 1.5rem;
+            left: 1.5rem;
+            padding: 1rem;
+        }
+        
+        .legend-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+        
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .legend-square {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+        
+        /* Map Controls */
+        .map-controls {
+            position: absolute;
+            top: 50%;
+            right: 1.5rem;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .map-control {
+            width: 40px;
+            height: 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+        
+        .map-control:hover {
+            background: var(--surface-2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        /* Enhanced Map Features */
+        .map-toolbar {
+            position: absolute;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+        
+        .map-tool {
+            padding: 0.5rem 1rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .map-tool:hover {
+            background: var(--surface-3);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .map-tool.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        /* Path Trace Panel */
+        .path-trace-panel {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 1.5rem;
+            width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .path-trace-panel.show {
+            display: block;
+        }
+        
+        .path-trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .path-segment {
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .path-segment-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .path-segment-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.75rem;
+        }
+        
+        /* Network Path Visualization */
+        .network-path {
+            stroke: var(--primary);
+            stroke-width: 4;
+            fill: none;
+            stroke-dasharray: 10, 5;
+            animation: dash 20s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+        
+        /* GEM Fiber Status */
+        .gem-status {
+            padding: 1rem;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+        
+        .gem-status.show {
+            display: block;
+        }
+        
+        .gem-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(to right, #f0fdf4, #dcfce7);
+            border: 1px solid #22c55e;
+            border-radius: var(--radius-sm);
+            color: #166534;
+        }
+        
+        .gem-info-content {
+            flex: 1;
+        }
+        
+        .gem-info-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .gem-info-details {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        /* Process Button */
+        .process-section {
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .process-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .process-btn:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Loading State */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            background: var(--success);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            transform: translateX(400px);
+            transition: transform 0.3s ease-out;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-icon {
+            font-size: 1.25rem;
+        }
+        
+        .notification-content {
+            flex: 1;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+        
+        .notification-message {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        /* Splice Documentation Styles */
+        .splicing-panel {
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .splicing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .splice-doc-header {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .splice-doc-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .export-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--info);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .export-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Splice Sheet Preview */
+        .splice-sheet-preview {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            page-break-inside: avoid;
+        }
+        
+        .sheet-header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .company-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .company-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .document-info {
+            text-align: right;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .sheet-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .splice-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+        
+        .splice-matrix-table th {
+            background: var(--surface-3);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            color: var(--secondary);
+        }
+        
+        .splice-matrix-table td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+        }
+        
+        .splice-matrix-table tr:hover {
+            background: var(--surface-2);
+        }
+        
+        /* LGX Panel Visualization */
+        .lgx-panel {
+            position: absolute;
+            top: 80px;
+            left: 1.5rem;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 400px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .lgx-panel.show {
+            display: block;
+        }
+        
+        .lgx-panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .lgx-panel-content {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .lgx-port-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2px;
+            padding: 1rem;
+        }
+        
+        .lgx-port {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.625rem;
+            font-weight: 600;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        
+        .lgx-port.assigned {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary-dark);
+        }
+        
+        .lgx-port.unassigned {
+            background: var(--text-light);
+            color: white;
+            opacity: 0.6;
+        }
+        
+        .lgx-port:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        /* Customer Trace Panel */
+        .customer-trace-panel {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 1rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .customer-trace-panel.show {
+            display: block;
+        }
+        
+        .customer-trace-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .customer-input {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+        
+        .trace-btn {
+            padding: 0.5rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .trace-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Hierarchy View Toggle */
+        .hierarchy-toggle {
+            position: absolute;
+            bottom: 120px;
+            left: 1.5rem;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 0.5rem;
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+        }
+        
+        .hierarchy-btn {
+            padding: 0.5rem 1rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 0.25rem;
+        }
+        
+        .hierarchy-btn:hover {
+            background: var(--surface-3);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .hierarchy-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔥</div>
+                <span>Phoenix Fiber</span>
+            </div>
+            
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-tab="input">
+                    <span>📊 Data Input</span>
+                </button>
+                <button class="nav-tab" data-tab="map">
+                    <span>🗺️ Network Map</span>
+                </button>
+                <button class="nav-tab" data-tab="splicing">
+                    <span>📄 Splicing Docs</span>
+                </button>
+                <button class="nav-tab" data-tab="analysis">
+                    <span>📈 Analysis</span>
+                </button>
+            </nav>
+            
+            <div class="header-actions">
+                <button class="grid-btn" id="undoBtn" onclick="undo()" title="Undo (Ctrl+Z)">
+                    <span>↶</span> Undo
+                </button>
+                <button class="grid-btn" id="redoBtn" onclick="redo()" title="Redo (Ctrl+Y)">
+                    <span>↷</span> Redo
+                </button>
+                <button class="grid-btn" style="background: var(--primary); color: white; border-color: var(--primary);" onclick="saveProject()">
+                    <span>💾</span> Save Project
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Data Input Panel -->
+        <div class="content-panel active" id="input-panel">
+            <div class="data-input-panel">
+                <div class="input-grid">
+                    <!-- Cable Data Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">📡 Cable Data</h2>
+                            <p class="input-subtitle">Paste your cable data from QGIS or enter manually</p>
+                        </div>
+                        
+                        <div class="detection-status" id="spliceGeoStatus">
+                            <div class="detection-alert">
+                                <span class="detection-icon">📍</span>
+                                <div class="detection-content">
+                                    <div class="detection-title">Splice locations detected!</div>
+                                    <div class="detection-description">Splice points with location data ready for mapping</div>
+                                </div>
+                                <button class="detection-action" onclick="processData()">
+                                    View on Map
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearCableGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addCableRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                                <button class="grid-btn" onclick="loadCableSample()">
+                                    <span>📋</span> Sample
+                                </button>
+                            </div>
+                            <div class="grid-info">
+                                <span id="cableRowCount">0 rows</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="cableGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>cable_type</th>
+                                        <th>fondid</th>
+                                        <th>size</th>
+                                        <th>cable_ct</th>
+                                        <th style="min-width: 200px;">wkt_geom <span style="font-weight: normal; color: var(--text-light);">(optional)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cableGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="detection-status" id="cableGeoStatus">
+                            <div class="detection-alert">
+                                <span class="detection-icon">🌍</span>
+                                <div class="detection-content">
+                                    <div class="detection-title">Geographic data detected!</div>
+                                    <div class="detection-description">Cables with location data ready for mapping</div>
+                                </div>
+                                <button class="detection-action" onclick="processData()">
+                                    View on Map
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="gem-status" id="gemStatus">
+                            <div class="gem-info">
+                                <span class="detection-icon">⚡</span>
+                                <div class="gem-info-content">
+                                    <div class="gem-info-title">GEM Fiber Processing Active</div>
+                                    <div class="gem-info-details" id="gemDetails">Light source cable identified</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Splice Data Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">🔌 Splice Points</h2>
+                            <p class="input-subtitle">Paste your splice point data from QGIS or enter manually</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearSpliceGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addSpliceRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                                <button class="grid-btn" onclick="loadSpliceSample()">
+                                    <span>📋</span> Sample
+                                </button>
+                            </div>
+                            <div class="grid-info">
+                                <span id="spliceRowCount">0 rows</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="spliceGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>fondid</th>
+                                        <th>fda</th>
+                                        <th>fsa</th>
+                                        <th>placement</th>
+                                        <th>spec</th>
+                                        <th>ap_type</th>
+                                        <th style="min-width: 200px;">wkt_geom <span style="font-weight: normal; color: var(--text-light);">(optional)</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="spliceGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Data Inputs -->
+                <div class="input-grid-3col">
+                    <!-- Cabinets Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">🏭 Cabinets</h2>
+                            <p class="input-subtitle">Active & Passive Cabinets</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearCabinetGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addCabinetRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="cabinetGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>cabinet_id</th>
+                                        <th>type</th>
+                                        <th>cab_size</th>
+                                        <th>fsa</th>
+                                        <th>fda</th>
+                                        <th>spec</th>
+                                        <th>wkt_geom</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cabinetGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- MST Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">📟 MST Hubs</h2>
+                            <p class="input-subtitle">Multi-Service Terminals</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearMSTGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addMSTRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="mstGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>mst_id</th>
+                                        <th>ports</th>
+                                        <th>fda</th>
+                                        <th>fsa</th>
+                                        <th>spec</th>
+                                        <th>wkt_geom</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mstGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- LGX Panel Input -->
+                    <div class="input-section">
+                        <div class="input-header">
+                            <h2 class="input-title">🎛️ LGX Panel</h2>
+                            <p class="input-subtitle">Port Assignments</p>
+                        </div>
+                        
+                        <div class="grid-toolbar">
+                            <div class="grid-actions">
+                                <button class="grid-btn" onclick="clearLGXGrid()">
+                                    <span>🗑️</span> Clear
+                                </button>
+                                <button class="grid-btn" onclick="addLGXRows(5)">
+                                    <span>➕</span> Add Rows
+                                </button>
+                                <button class="grid-btn" onclick="importLGXFromExcel()">
+                                    <span>📥</span> Import Excel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-wrapper">
+                            <table class="data-grid" id="lgxGrid">
+                                <thead>
+                                    <tr>
+                                        <th class="row-number-header">#</th>
+                                        <th>fiber</th>
+                                        <th>port</th>
+                                        <th>mst_hub</th>
+                                        <th>address</th>
+                                        <th>customer_id</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lgxGridBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Process Section -->
+                <div class="process-section">
+                    <button class="process-btn" id="processBtn" onclick="processData()">
+                        <span>⚡</span>
+                        <span>Process Network Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Panel -->
+        <div class="content-panel" id="map-panel">
+            <div class="map-panel">
+                <div id="networkMap"></div>
+                
+                <!-- Map Toolbar -->
+                <div class="map-toolbar">
+                    <button class="map-tool active" id="selectTool" onclick="setMapTool('select')">
+                        <span>👆</span> Select
+                    </button>
+                    <button class="map-tool" id="traceTool" onclick="setMapTool('trace')">
+                        <span>🔍</span> Trace Path
+                    </button>
+                    <button class="map-tool" id="customerTraceTool" onclick="setMapTool('customerTrace')">
+                        <span>🏠</span> Customer Trace
+                    </button>
+                    <button class="map-tool" id="measureTool" onclick="setMapTool('measure')">
+                        <span>📏</span> Measure
+                    </button>
+                </div>
+                
+                <!-- Customer Trace Panel -->
+                <div class="customer-trace-panel" id="customerTracePanel">
+                    <div class="customer-trace-input">
+                        <input type="text" class="customer-input" id="customerAddressInput" 
+                               placeholder="Enter customer address (e.g., 3611 SCENIC HWY)">
+                        <button class="trace-btn" onclick="traceCustomerPath()">
+                            Trace to Active Cabinet
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Floating Panels -->
+                <div class="floating-panel stats-panel fade-in">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Network Overview</h3>
+                        <button class="panel-close" onclick="togglePanel(this)">×</button>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCables">0</div>
+                            <div class="stat-label">Cables</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statSplices">0</div>
+                            <div class="stat-label">Splices</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCabinets">0</div>
+                            <div class="stat-label">Cabinets</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMSTs">0</div>
+                            <div class="stat-label">MSTs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCustomers">0</div>
+                            <div class="stat-label">Addresses</div>
+                        </div>
+                    </div>
+                    <div style="padding: 0 1.5rem 1.5rem; text-align: center;">
+                        <div id="fsaInfo" style="font-size: 0.875rem; color: var(--text-light); margin-top: -0.5rem;">
+                            <!-- FSA info will be populated here -->
+                        </div>
+                        <div id="lightSourceInfo" style="font-size: 0.875rem; color: var(--primary); margin-top: 0.5rem; font-weight: 600;">
+                            <!-- Light source info will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="floating-panel search-panel fade-in">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Search Network</h3>
+                        <button class="panel-close" onclick="togglePanel(this)">×</button>
+                    </div>
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" placeholder="Search cables, splices, cabinets, MSTs, or addresses..." 
+                               id="searchInput" oninput="performNetworkSearch()">
+                    </div>
+                    <div class="search-results" id="searchResults">
+                    </div>
+                </div>
+                
+                <div class="floating-panel legend-panel fade-in">
+                    <h4 class="legend-title">Map Legend</h4>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-square" style="background: var(--error);"></div>
+                            <span>Active Cabinet</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-square" style="background: var(--warning);"></div>
+                            <span>Passive Cabinet</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: var(--primary);"></div>
+                            <span>Splice Point</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: var(--info); width: 12px; height: 12px;"></div>
+                            <span>MST Hub</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: var(--success); width: 8px; height: 8px;"></div>
+                            <span>Service Location</span>
+                        </div>
+                        <div class="legend-item" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border);">
+                            <div class="legend-line" style="background: #3b82f6;"></div>
+                            <span>FEEDER (T3)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #10b981;"></div>
+                            <span>DISTRIBUTION (T2)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #f59e0b;"></div>
+                            <span>MST TAIL (T1_TAIL)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LGX Panel Display -->
+                <div class="lgx-panel" id="lgxPanelDisplay">
+                    <div class="lgx-panel-header">
+                        <h3 class="panel-title" id="lgxPanelTitle">LGX Panel</h3>
+                        <button class="panel-close" onclick="closeLGXPanel()">×</button>
+                    </div>
+                    <div class="lgx-panel-content">
+                        <div class="lgx-port-grid" id="lgxPortGrid">
+                            <!-- LGX ports will be dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Path Trace Panel -->
+                <div class="path-trace-panel" id="pathTracePanel">
+                    <div class="path-trace-header">
+                        <h3 class="panel-title">Fiber Path Trace</h3>
+                        <button class="panel-close" onclick="closePathTracePanel()">×</button>
+                    </div>
+                    <div id="pathTraceContent">
+                        <!-- Path trace details will be shown here -->
+                    </div>
+                </div>
+                
+                <!-- Hierarchy View Toggle -->
+                <div class="hierarchy-toggle">
+                    <button class="hierarchy-btn active" onclick="setHierarchyView('all')">All</button>
+                    <button class="hierarchy-btn" onclick="setHierarchyView('fsa')">FSA</button>
+                    <button class="hierarchy-btn" onclick="setHierarchyView('fda')">FDA</button>
+                </div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button class="map-control" onclick="zoomToFit()">
+                        <span>⊡</span>
+                    </button>
+                    <button class="map-control" onclick="showLGXPanel()">
+                        <span>🎛️</span>
+                    </button>
+                    <button class="map-control" onclick="validateNetwork()">
+                        <span>✓</span>
+                    </button>
+                    <button class="map-control" onclick="exportKML()">
+                        <span>📥</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Splicing Documents Panel -->
+        <div class="content-panel" id="splicing-panel">
+            <div class="splicing-panel">
+                <div class="splicing-container">
+                    <div class="splice-doc-header">
+                        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.5rem;">
+                            Splice Documentation
+                        </h2>
+                        <p style="color: var(--text-light);">
+                            Generated using GEM Fiber logic - Light source cable detection and automated splice mapping
+                        </p>
+                        
+                        <div class="splice-doc-actions">
+                            <button class="export-btn" onclick="exportSpliceExcel()">
+                                <span>📊</span> Export Excel
+                            </button>
+                            <button class="export-btn" onclick="generatePDF()">
+                                <span>📄</span> Generate PDF
+                            </button>
+                            <button class="export-btn" onclick="printSpliceSheets()">
+                                <span>🖨️</span> Print Sheets
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="spliceMatrixContainer">
+                        <!-- Splice sheets will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analysis Panel -->
+        <div class="content-panel" id="analysis-panel">
+            <div class="data-input-panel">
+                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--secondary);">
+                    Network Utilization Dashboard
+                </h2>
+                
+                <div id="utilizationDashboard" style="display: none;">
+                    <!-- FDA/FSA Summary Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                        <div class="input-section" style="padding: 1.5rem;">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--secondary); margin-bottom: 1rem;">
+                                Network Summary
+                            </h3>
+                            <div id="networkSummary" style="display: grid; gap: 0.75rem;">
+                                <!-- Summary stats will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="input-section" style="padding: 1.5rem;">
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--secondary); margin-bottom: 1rem;">
+                                Fiber Utilization by Type
+                            </h3>
+                            <div id="fiberTypeUtilization" style="display: grid; gap: 0.75rem;">
+                                <!-- Utilization by cable type will be shown here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FDA Breakdown -->
+                    <div class="input-section" style="padding: 1.5rem;">
+                        <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--secondary); margin-bottom: 1rem;">
+                            Utilization by FDA
+                        </h3>
+                        <div id="fdaUtilization" style="overflow-x: auto;">
+                            <!-- FDA table will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Cable Detail Table -->
+                    <div class="input-section" style="padding: 1.5rem; margin-top: 1.5rem;">
+                        <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--secondary); margin-bottom: 1rem;">
+                            Cable Utilization Details
+                        </h3>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="font-size: 0.875rem; color: var(--text-light);">Filter by FDA:</label>
+                            <select id="fdaFilter" onchange="filterUtilizationTable()" style="margin-left: 0.5rem; padding: 0.375rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                                <option value="">All FDAs</option>
+                            </select>
+                        </div>
+                        <div id="cableUtilizationTable" style="overflow-x: auto;">
+                            <!-- Cable detail table will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="noDataMessage" style="text-align: center; margin: 4rem 0; color: var(--text-light);">
+                    Process network data to view utilization dashboard
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span class="notification-icon">✅</span>
+        <div class="notification-content">
+            <div class="notification-title" id="notificationTitle">Success!</div>
+            <div class="notification-message" id="notificationMessage">Data imported successfully</div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS - Load before main script -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    
+    <script>
+        // Wait for Leaflet to load
+        window.addEventListener('load', function() {
+            console.log('Window loaded, checking for Leaflet...');
+            if (typeof L === 'undefined') {
+                console.error('Leaflet failed to load!');
+                showNotification('Error', 'Map library failed to load. Please refresh the page.', 'error');
+            } else {
+                console.log('Leaflet loaded successfully');
+            }
+        });
+        
+        // =====================================================================
+        // GLOBAL STATE - Enhanced with tier definitions
+        // =====================================================================
+        
+        // Tier Definitions based on your specifications
+        const TIER_DEFINITIONS = {
+            'T1': { name: 'Fiber Drop', description: 'MST to Customer', color: '#ef4444' },
+            'T1_TAIL': { name: 'MST Tail', description: 'Distribution to MST', color: '#f59e0b' },
+            'T2': { name: 'Distribution', description: 'Passive Cabinet to MST', color: '#10b981' },
+            'T3': { name: 'Feeder', description: 'Active to Passive Cabinet', color: '#3b82f6' },
+            'T4': { name: 'County Link', description: 'Between Active Cabinets (County)', color: '#8b5cf6' },
+            'T5': { name: 'Inter-County', description: 'Between Counties', color: '#6366f1' }
+        };
+        
+        // History for undo/redo
+        const HISTORY_STACK = [];
+        let HISTORY_INDEX = -1;
+        const MAX_HISTORY = 50;
+        
+        let cableData = [];
+        let spliceData = [];
+        let cabinetData = [];
+        let mstData = [];
+        let lgxData = [];
+        let serviceLocationData = [];
+        
+        let map = null;
+        let networkLayers = {
+            cables: {},
+            splices: {},
+            cabinets: {},
+            msts: {},
+            serviceLocations: {},
+            labels: {},
+            highlights: [],
+            customerCluster: null
+        };
+        
+        // GEM Fiber specific variables
+        let lightSourceCable = null;
+        let cableMap = {};
+        let processedConnections = [];
+        let deadFiberMap = {};
+        let parsingErrors = [];
+        
+        // Map interaction state
+        let currentMapTool = 'select';
+        let currentHierarchyView = 'all';
+        
+        // Processed network data
+        window.processedNetwork = null;
+        let cableData = [];
+        let spliceData = [];
+        let cabinetData = [];
+        let mstData = [];
+        let lgxData = [];
+        let serviceLocationData = [];
+        
+        let map = null;
+        let networkLayers = {
+            cables: {},
+            splices: {},
+            cabinets: {},
+            msts: {},
+            serviceLocations: {},
+            labels: {},
+            highlights: [],
+            customerCluster: null
+        };
+        
+        // GEM Fiber specific variables
+        let lightSourceCable = null;
+        let cableMap = {};
+        let processedConnections = [];
+        let deadFiberMap = {};
+        let parsingErrors = [];
+        
+        // Map interaction state
+        let currentMapTool = 'select';
+        let currentHierarchyView = 'all';
+        
+        // Processed network data
+        window.processedNetwork = null;
+        
+        // =====================================================================
+        // INITIALIZATION - Fix the loading issue
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Initializing Phoenix Fiber');
+            
+            // Check if Leaflet is loaded
+            if (typeof L === 'undefined') {
+                console.error('Leaflet not loaded yet, waiting...');
+                // Wait a bit for Leaflet to load
+                setTimeout(initializeApp, 1000);
+            } else {
+                initializeApp();
+            }
+        });
+        
+        // Check if all required libraries are loaded
+        function checkLibraries() {
+            const required = {
+                'Leaflet': typeof L !== 'undefined',
+                'SheetJS': typeof XLSX !== 'undefined'
+            };
+            
+            let allLoaded = true;
+            for (let lib in required) {
+                if (!required[lib]) {
+                    console.error(`${lib} library not loaded!`);
+                    allLoaded = false;
+                }
+            }
+            
+            return allLoaded;
+        }
+        
+        // Initialize application when libraries are ready
+        function initializeApp() {
+            console.log('Initializing application...');
+            
+            if (!checkLibraries()) {
+                console.error('Required libraries not loaded, retrying...');
+                setTimeout(initializeApp, 500);
+                return;
+            }
+            
+            // Initialize tab switching
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+            
+            // Initialize keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+            
+            // Initialize empty grids
+            addCableRows(5);
+            addSpliceRows(5);
+            addCabinetRows(3);
+            addMSTRows(3);
+            addLGXRows(5);
+            
+            // Load sample data for testing
+            setTimeout(() => {
+                loadCableSample();
+                loadSpliceSample();
+            }, 100);
+            
+            console.log('Phoenix Fiber initialized successfully');
+        }
+        
+        // =====================================================================
+        // UI FUNCTIONS
+        // =====================================================================
+        function switchTab(tab) {
+            console.log('Switching to tab:', tab);
+            
+            // Update tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            
+            // Update panels
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`${tab}-panel`).classList.add('active');
+            
+            // Initialize map if needed
+            if (tab === 'map' && !map) {
+                if (typeof L !== 'undefined') {
+                    setTimeout(initializeMap, 100);
+                } else {
+                    console.error('Leaflet not loaded, cannot initialize map');
+                    showNotification('Map Error', 'Map library not loaded. Please refresh the page.', 'error');
+                }
+            }
+            
+            // Generate splice documents if switching to splicing tab
+            if (tab === 'splicing' && window.processedNetwork) {
+                generateSpliceDocuments();
+            }
+        }
+        
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const titleEl = document.getElementById('notificationTitle');
+            const messageEl = document.getElementById('notificationMessage');
+            const iconEl = notification.querySelector('.notification-icon');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            // Set icon and color based on type
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            const colors = {
+                success: 'var(--success)',
+                error: 'var(--error)',
+                info: 'var(--info)',
+                warning: 'var(--warning)'
+            };
+            
+            notification.style.background = colors[type] || colors.success;
+            iconEl.textContent = icons[type] || icons.success;
+            
+            // Show notification
+            notification.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        function togglePanel(btn) {
+            const panel = btn.closest('.floating-panel');
+            // Store panel state
+            if (panel.dataset.hidden === 'true') {
+                panel.style.display = '';
+                panel.dataset.hidden = 'false';
+            } else {
+                panel.style.display = 'none';
+                panel.dataset.hidden = 'true';
+            }
+        }
+        
+        // =====================================================================
+        // DATA GRID FUNCTIONS
+        // =====================================================================
+        function addCableRows(count) {
+            const tbody = document.getElementById('cableGridBody');
+            const currentRows = tbody.children.length;
+            
+            for (let i = 0; i < count; i++) {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="row-number">${currentRows + i + 1}</td>
+                    <td><input type="text" class="grid-input" data-field="cable_type" oninput="validateCableInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="fondid" oninput="validateCableInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="size" oninput="validateCableInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="cable_ct" oninput="validateCableInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="wkt_geom" oninput="detectGeoData('cable', this)"></td>
+                `;
+            }
+            updateCableRowCount();
+        }
+        
+        function addSpliceRows(count) {
+            const tbody = document.getElementById('spliceGridBody');
+            const currentRows = tbody.children.length;
+            
+            for (let i = 0; i < count; i++) {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="row-number">${currentRows + i + 1}</td>
+                    <td><input type="text" class="grid-input" data-field="fondid" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="fda" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="fsa" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="placement" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="spec" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="ap_type" oninput="validateSpliceInput(this)"></td>
+                    <td><input type="text" class="grid-input" data-field="wkt_geom" oninput="detectGeoData('splice', this)"></td>
+                `;
+            }
+            updateSpliceRowCount();
+        }
+        
+        function addCabinetRows(count) {
+            const tbody = document.getElementById('cabinetGridBody');
+            const currentRows = tbody.children.length;
+            
+            for (let i = 0; i < count; i++) {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="row-number">${currentRows + i + 1}</td>
+                    <td><input type="text" class="grid-input" data-field="cabinet_id"></td>
+                    <td><input type="text" class="grid-input" data-field="type" placeholder="ACTIVE/PASSIVE"></td>
+                    <td><input type="text" class="grid-input" data-field="cab_size" placeholder="288"></td>
+                    <td><input type="text" class="grid-input" data-field="fsa"></td>
+                    <td><input type="text" class="grid-input" data-field="fda"></td>
+                    <td><input type="text" class="grid-input" data-field="spec"></td>
+                    <td><input type="text" class="grid-input" data-field="wkt_geom"></td>
+                `;
+            }
+        }
+        
+        function addMSTRows(count) {
+            const tbody = document.getElementById('mstGridBody');
+            const currentRows = tbody.children.length;
+            
+            for (let i = 0; i < count; i++) {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="row-number">${currentRows + i + 1}</td>
+                    <td><input type="text" class="grid-input" data-field="mst_id"></td>
+                    <td><input type="text" class="grid-input" data-field="ports" placeholder="4"></td>
+                    <td><input type="text" class="grid-input" data-field="fda"></td>
+                    <td><input type="text" class="grid-input" data-field="fsa"></td>
+                    <td><input type="text" class="grid-input" data-field="spec" placeholder="Titan"></td>
+                    <td><input type="text" class="grid-input" data-field="wkt_geom"></td>
+                `;
+            }
+        }
+        
+        function addLGXRows(count) {
+            const tbody = document.getElementById('lgxGridBody');
+            const currentRows = tbody.children.length;
+            
+            for (let i = 0; i < count; i++) {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="row-number">${currentRows + i + 1}</td>
+                    <td><input type="text" class="grid-input" data-field="fiber"></td>
+                    <td><input type="text" class="grid-input" data-field="port"></td>
+                    <td><input type="text" class="grid-input" data-field="mst_hub"></td>
+                    <td><input type="text" class="grid-input" data-field="address"></td>
+                    <td><input type="text" class="grid-input" data-field="customer_id"></td>
+                `;
+            }
+        }
+        
+        function clearCableGrid() {
+            document.getElementById('cableGridBody').innerHTML = '';
+            updateCableRowCount();
+            cableData = [];
+        }
+        
+        function clearSpliceGrid() {
+            document.getElementById('spliceGridBody').innerHTML = '';
+            updateSpliceRowCount();
+            spliceData = [];
+        }
+        
+        function clearCabinetGrid() {
+            document.getElementById('cabinetGridBody').innerHTML = '';
+            cabinetData = [];
+        }
+        
+        function clearMSTGrid() {
+            document.getElementById('mstGridBody').innerHTML = '';
+            mstData = [];
+        }
+        
+        function clearLGXGrid() {
+            document.getElementById('lgxGridBody').innerHTML = '';
+            lgxData = [];
+        }
+        
+        function updateCableRowCount() {
+            const count = document.getElementById('cableGridBody').children.length;
+            document.getElementById('cableRowCount').textContent = `${count} rows`;
+        }
+        
+        function updateSpliceRowCount() {
+            const count = document.getElementById('spliceGridBody').children.length;
+            document.getElementById('spliceRowCount').textContent = `${count} rows`;
+        }
+        
+        // Sample data loaders
+        function loadCableSample() {
+            clearCableGrid();
+            const sampleData = [
+                {cable_type: 'FEEDER', fondid: 'AUGS02-F-0001', size: '288', cable_ct: '1-288 AUGUSTA LGX 1-288 T3', wkt_geom: 'LINESTRING(-79.096154 38.314011, -79.095869 38.316235)'},
+                {cable_type: 'DISTRIBUTION', fondid: 'AUGS02-D-0004', size: '144', cable_ct: '1-96 AUGS02-F-0001 1-96 T2; 97-144 XD', wkt_geom: 'LINESTRING(-79.095869 38.316235, -79.059368 38.336235)'},
+                {cable_type: 'DISTRIBUTION', fondid: 'AUGS02-D-0207', size: '96', cable_ct: '1-48 IDEAA-AUGS-2_FDA_007 1-48 T2; 49-96 XD', wkt_geom: 'LINESTRING(-79.096135 38.314021, -79.058604 38.335795)'},
+                {cable_type: 'MST TAIL', fondid: 'AUGS02-T-0012', size: '12', cable_ct: '1-4 AU02-T1_HUB_0012 1-4 T1_TAIL; 5-12 XD', wkt_geom: 'LINESTRING(-79.059368 38.336235, -79.057563 38.337445)'},
+                {cable_type: 'MST TAIL', fondid: 'AUGS02-T-0013', size: '12', cable_ct: '1-8 AU02-T1_HUB_0013 1-8 T1_TAIL; 9-12 XD', wkt_geom: 'LINESTRING(-79.058604 38.335795, -79.056729 38.334745)'}
+            ];
+            
+            // Load cabinets
+            const cabinetSampleData = [
+                {cabinet_id: 'FAC-AUGS-2', type: 'ACTIVE', cab_size: '288', fsa: 'VA-AUGS-02', fda: 'VAAUGS0207', spec: 'FAC-3200', wkt_geom: 'POINT(-79.09615407474086624 38.31401082417043114)'},
+                {cabinet_id: 'IDEAA-AUGS-2_FDA_007', type: 'PASSIVE', cab_size: '288', fsa: 'VA-AUGS-02', fda: 'VAAUGS0207', spec: 'IDEAA', wkt_geom: 'POINT(-79.09613452730685879 38.31402142616851592)'}
+            ];
+            
+            // Load MSTs (with 4 and 8 port examples)
+            const mstSampleData = [
+                {mst_id: 'AU02-T1_HUB_0012', ports: '4', fda: 'VAAUGS0204', fsa: 'VA-AUGS-02', spec: 'Titan', wkt_geom: 'POINT(-79.05936804768121817 38.33623457064457796)'},
+                {mst_id: 'AU02-T1_HUB_0013', ports: '8', fda: 'VAAUGS0204', fsa: 'VA-AUGS-02', spec: 'Titan', wkt_geom: 'POINT(-79.05672940610585897 38.33474535003254147)'}
+            ];
+            
+            // Load sample LGX data
+            const lgxSampleData = [
+                {fiber: '1', port: '1', mst_hub: 'AU02-T1_HUB_0012', address: '3611 SCENIC HWY', customer_id: 'CUST001'},
+                {fiber: '2', port: '2', mst_hub: 'AU02-T1_HUB_0012', address: '3609 SCENIC HWY', customer_id: 'CUST002'},
+                {fiber: '3', port: '3', mst_hub: 'AU02-T1_HUB_0012', address: '3595 SCENIC HWY', customer_id: ''},
+                {fiber: '4', port: '4', mst_hub: 'AU02-T1_HUB_0012', address: '3764 SCENIC HWY', customer_id: 'CUST004'},
+                {fiber: '5', port: '5', mst_hub: 'AU02-T1_HUB_0013', address: '3973 SCENIC HWY', customer_id: ''},
+                {fiber: '6', port: '6', mst_hub: 'AU02-T1_HUB_0013', address: '3962 SCENIC HWY', customer_id: 'CUST006'},
+                {fiber: '7', port: '7', mst_hub: 'AU02-T1_HUB_0013', address: '4100 SCENIC HWY', customer_id: ''},
+                {fiber: '8', port: '8', mst_hub: 'AU02-T1_HUB_0013', address: '4186 SCENIC HWY', customer_id: ''}
+            ];
+            
+            // Load cables
+            sampleData.forEach((data, i) => {
+                addCableRows(1);
+                const row = document.getElementById('cableGridBody').children[i];
+                row.querySelector('[data-field="cable_type"]').value = data.cable_type;
+                row.querySelector('[data-field="fondid"]').value = data.fondid;
+                row.querySelector('[data-field="size"]').value = data.size;
+                row.querySelector('[data-field="cable_ct"]').value = data.cable_ct;
+                row.querySelector('[data-field="wkt_geom"]').value = data.wkt_geom;
+            });
+            
+            // Load cabinets
+            clearCabinetGrid();
+            cabinetSampleData.forEach((data, i) => {
+                addCabinetRows(1);
+                const row = document.getElementById('cabinetGridBody').children[i];
+                row.querySelector('[data-field="cabinet_id"]').value = data.cabinet_id;
+                row.querySelector('[data-field="type"]').value = data.type;
+                row.querySelector('[data-field="cab_size"]').value = data.cab_size;
+                row.querySelector('[data-field="fsa"]').value = data.fsa;
+                row.querySelector('[data-field="fda"]').value = data.fda;
+                row.querySelector('[data-field="spec"]').value = data.spec;
+                row.querySelector('[data-field="wkt_geom"]').value = data.wkt_geom;
+            });
+            
+            // Load MSTs
+            clearMSTGrid();
+            mstSampleData.forEach((data, i) => {
+                addMSTRows(1);
+                const row = document.getElementById('mstGridBody').children[i];
+                row.querySelector('[data-field="mst_id"]').value = data.mst_id;
+                row.querySelector('[data-field="ports"]').value = data.ports;
+                row.querySelector('[data-field="fda"]').value = data.fda;
+                row.querySelector('[data-field="fsa"]').value = data.fsa;
+                row.querySelector('[data-field="spec"]').value = data.spec;
+                row.querySelector('[data-field="wkt_geom"]').value = data.wkt_geom;
+            });
+            
+            // Load LGX
+            clearLGXGrid();
+            lgxSampleData.forEach((data, i) => {
+                addLGXRows(1);
+                const row = document.getElementById('lgxGridBody').children[i];
+                row.querySelector('[data-field="fiber"]').value = data.fiber;
+                row.querySelector('[data-field="port"]').value = data.port;
+                row.querySelector('[data-field="mst_hub"]').value = data.mst_hub;
+                row.querySelector('[data-field="address"]').value = data.address;
+                row.querySelector('[data-field="customer_id"]').value = data.customer_id;
+            });
+            
+            detectGeoData('cable');
+            showNotification('Sample Data Loaded', 'Full network sample data has been loaded', 'success');
+        }
+        
+        function loadSpliceSample() {
+            clearSpliceGrid();
+            const sampleData = [
+                {fondid: 'AUGS-2_FDA_4_SP_15', fda: 'VAAUGS0204', fsa: 'VA-AUGS-02', placement: 'AERIAL', spec: 'X-2S', ap_type: 'SPLICE', wkt_geom: 'POINT(-79.05860428536733764 38.33579500580574262)'},
+                {fondid: 'AUGS-2_FDA_7_SP_1', fda: 'VAAUGS0207', fsa: 'VA-AUGS-02', placement: 'AERIAL', spec: 'X-2', ap_type: 'SPLICE', wkt_geom: 'POINT(-79.095869 38.316235)'}
+            ];
+            
+            sampleData.forEach((data, i) => {
+                addSpliceRows(1);
+                const row = document.getElementById('spliceGridBody').children[i];
+                row.querySelector('[data-field="fondid"]').value = data.fondid;
+                row.querySelector('[data-field="fda"]').value = data.fda;
+                row.querySelector('[data-field="fsa"]').value = data.fsa;
+                row.querySelector('[data-field="placement"]').value = data.placement;
+                row.querySelector('[data-field="spec"]').value = data.spec;
+                row.querySelector('[data-field="ap_type"]').value = data.ap_type;
+                row.querySelector('[data-field="wkt_geom"]').value = data.wkt_geom;
+            });
+            
+            detectGeoData('splice');
+        }
+        
+        // Validation functions
+        function validateCableInput(input) {
+            const field = input.getAttribute('data-field');
+            const value = input.value.trim();
+            
+            input.classList.remove('valid', 'error');
+            
+            if (value) {
+                if (field === 'size' && isNaN(value)) {
+                    input.classList.add('error');
+                } else {
+                    input.classList.add('valid');
+                }
+            }
+            
+            updateProcessButton();
+        }
+        
+        function validateSpliceInput(input) {
+            const field = input.getAttribute('data-field');
+            const value = input.value.trim();
+            
+            input.classList.remove('valid', 'error');
+            
+            if (value) {
+                input.classList.add('valid');
+            }
+            
+            updateProcessButton();
+        }
+        
+        function detectGeoData(type) {
+            let hasGeo = false;
+            
+            if (type === 'cable') {
+                const rows = document.getElementById('cableGridBody').children;
+                for (let row of rows) {
+                    const wkt = row.querySelector('[data-field="wkt_geom"]').value;
+                    if (wkt && wkt.includes('LINESTRING')) {
+                        hasGeo = true;
+                        break;
+                    }
+                }
+                
+                const status = document.getElementById('cableGeoStatus');
+                if (hasGeo) {
+                    status.classList.add('show');
+                } else {
+                    status.classList.remove('show');
+                }
+            } else if (type === 'splice') {
+                const rows = document.getElementById('spliceGridBody').children;
+                for (let row of rows) {
+                    const wkt = row.querySelector('[data-field="wkt_geom"]').value;
+                    if (wkt && wkt.includes('POINT')) {
+                        hasGeo = true;
+                        break;
+                    }
+                }
+                
+                const status = document.getElementById('spliceGeoStatus');
+                if (hasGeo) {
+                    status.classList.add('show');
+                } else {
+                    status.classList.remove('show');
+                }
+            }
+        }
+        
+        function updateProcessButton() {
+            const cableRows = document.getElementById('cableGridBody').children;
+            const spliceRows = document.getElementById('spliceGridBody').children;
+            
+            let validCables = 0;
+            let validSplices = 0;
+            
+            for (let row of cableRows) {
+                const fondid = row.querySelector('[data-field="fondid"]').value;
+                const type = row.querySelector('[data-field="cable_type"]').value;
+                if (fondid && type) validCables++;
+            }
+            
+            for (let row of spliceRows) {
+                const fondid = row.querySelector('[data-field="fondid"]').value;
+                if (fondid) validSplices++;
+            }
+            
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = validCables === 0;
+        }
+        
+        // =====================================================================
+        // GEM FIBER PARSING LOGIC
+        // =====================================================================
+        class FiberRange {
+            constructor(startFiber, endFiber, isDeadFiber = false, tierDesignation = 'T2') {
+                this.startFiber = startFiber;
+                this.endFiber = endFiber;
+                this.isDeadFiber = isDeadFiber;
+                this.tierDesignation = tierDesignation;
+            }
+        }
+        
+        class PortRange {
+            constructor(startPort, endPort, facilityName, tierDesignation = 'T2', isFacilityOnly = false) {
+                this.startPort = startPort;
+                this.endPort = endPort;
+                this.facilityName = facilityName;
+                this.tierDesignation = tierDesignation;
+                this.isFacilityOnly = isFacilityOnly;
+            }
+        }
+        
+        class ParsedCableData {
+            constructor() {
+                this.fiberRanges = [];
+                this.portRanges = [];
+                this.hasErrors = false;
+                this.errorMessages = '';
+                this.totalLitFibers = 0;
+                this.totalLitPorts = 0;
+            }
+        }
+        
+        function parseCableCt(cableCt, cableId) {
+            const result = new ParsedCableData();
+            
+            // Split by semicolon to get main segments
+            const segments = cableCt.split(';');
+            
+            for (let segment of segments) {
+                segment = segment.trim();
+                if (segment !== '') {
+                    processCableSegment(segment, result, cableId);
+                }
+            }
+            
+            // Validate parsed data
+            validateParsedData(result, cableId);
+            
+            return result;
+        }
+        
+        function processCableSegment(segment, result, cableId) {
+            // Clean up newline characters
+            let processedSegment = segment.replace(/[\r\n]/g, ' ').trim();
+            
+            // Extract tier designation
+            const tierDesignation = extractTierDesignation(processedSegment);
+            
+            // Check if this is a dead fiber segment
+            const isDeadSegment = processedSegment.toUpperCase().includes('XD');
+            
+            if (isDeadSegment) {
+                processDeadFiberSegment(processedSegment, result, tierDesignation, cableId);
+            } else {
+                processActiveFiberSegment(processedSegment, result, tierDesignation, cableId);
+            }
+        }
+        
+        function extractTierDesignation(segment) {
+            const upperSegment = segment.toUpperCase();
+            
+            // Check for T1_TAIL first (special case)
+            if (upperSegment.includes('T1_TAIL')) {
+                return 'T1_TAIL';
+            }
+            
+            // Check for T1-T5
+            for (let i = 5; i >= 1; i--) {
+                if (upperSegment.includes(`T${i}`)) {
+                    return `T${i}`;
+                }
+            }
+            
+            return 'T2'; // Default to distribution
+        }
+        
+        function processDeadFiberSegment(segment, result, tierDesignation, cableId) {
+            let cleanedSegment = segment.trim();
+            
+            // Remove tier designation
+            if (tierDesignation !== 'T2') {
+                cleanedSegment = cleanedSegment.replace(new RegExp(tierDesignation, 'gi'), '');
+            }
+            cleanedSegment = cleanedSegment.trim();
+            
+            // Remove XD/xd - handle various formats
+            cleanedSegment = cleanedSegment.replace(/\bXD\b/gi, '').trim();
+            cleanedSegment = cleanedSegment.replace(/\bxd\b/gi, '').trim();
+            
+            // Parse fiber ranges (can be comma-separated like "1-4, 7-10")
+            if (cleanedSegment !== '') {
+                const ranges = cleanedSegment.split(',');
+                for (let range of ranges) {
+                    range = range.trim();
+                    if (range !== '' && (range.includes('-') || !isNaN(range))) {
+                        addFiberRange(result, range, true, tierDesignation);
+                    }
+                }
+            }
+        }
+        
+        function processActiveFiberSegment(segment, result, tierDesignation, cableId) {
+            const { fiberRanges, facilityName, portRanges } = extractRangesFromSegment(segment, tierDesignation);
+            
+            // Add fiber ranges
+            for (let range of fiberRanges) {
+                if (range.trim() !== '') {
+                    addFiberRange(result, range, false, tierDesignation);
+                }
+            }
+            
+            // Handle port ranges
+            if (facilityName && portRanges.length > 0) {
+                for (let range of portRanges) {
+                    if (range.trim() !== '') {
+                        addPortRange(result, range, facilityName, tierDesignation);
+                    }
+                }
+            }
+        }
+        
+        function extractRangesFromSegment(segment, tierDesignation) {
+            let cleanSegment = segment.replace(new RegExp(tierDesignation, 'gi'), '').trim();
+            
+            // Split and find facility name
+            const parts = cleanSegment.split(' ');
+            let facilityName = '';
+            let facilityIndex = -1;
+            let fiberRanges = [];
+            let portRanges = [];
+            
+            // Find facility name (contains letters)
+            for (let i = 0; i < parts.length; i++) {
+                if (/[a-zA-Z]/.test(parts[i]) && !parts[i].includes('-')) {
+                    facilityIndex = i;
+                    // Collect all parts that form the facility name
+                    while (i < parts.length && /[a-zA-Z_-]/.test(parts[i])) {
+                        facilityName += (facilityName ? ' ' : '') + parts[i];
+                        i++;
+                    }
+                    break;
+                }
+            }
+            
+            // Extract ranges
+            if (facilityIndex >= 0) {
+                // Fiber ranges are before facility
+                for (let i = 0; i < facilityIndex; i++) {
+                    if (parts[i].includes('-') || !isNaN(parts[i])) {
+                        fiberRanges.push(parts[i]);
+                    }
+                }
+                
+                // Port ranges are after facility
+                for (let i = facilityIndex + facilityName.split(' ').length; i < parts.length; i++) {
+                    if (parts[i] && (parts[i].includes('-') || !isNaN(parts[i]))) {
+                        portRanges.push(parts[i]);
+                    }
+                }
+            } else {
+                // No facility - all are fiber ranges
+                fiberRanges = parts.filter(p => p.includes('-') || !isNaN(p));
+            }
+            
+            return { fiberRanges, facilityName, portRanges };
+        }
+        
+        function addFiberRange(result, rangeText, isDead, tierDesignation) {
+            rangeText = rangeText.trim();
+            let startFiber, endFiber;
+            
+            if (rangeText.includes('-')) {
+                const parts = rangeText.split('-');
+                startFiber = parseInt(parts[0]);
+                endFiber = parseInt(parts[1]);
+            } else if (!isNaN(rangeText)) {
+                startFiber = parseInt(rangeText);
+                endFiber = parseInt(rangeText);
+            } else {
+                return;
+            }
+            
+            if (!isNaN(startFiber) && !isNaN(endFiber)) {
+                const newRange = new FiberRange(startFiber, endFiber, isDead, tierDesignation);
+                result.fiberRanges.push(newRange);
+                
+                if (!isDead) {
+                    result.totalLitFibers += (endFiber - startFiber + 1);
+                }
+            }
+        }
+        
+        function addPortRange(result, rangeText, facilityName, tierDesignation) {
+            rangeText = rangeText.trim();
+            let startPort, endPort;
+            
+            if (rangeText.includes('-')) {
+                const parts = rangeText.split('-');
+                startPort = parseInt(parts[0]);
+                endPort = parseInt(parts[1]);
+            } else if (!isNaN(rangeText)) {
+                startPort = parseInt(rangeText);
+                endPort = parseInt(rangeText);
+            } else {
+                return;
+            }
+            
+            if (!isNaN(startPort) && !isNaN(endPort)) {
+                const newRange = new PortRange(startPort, endPort, facilityName, tierDesignation, false);
+                result.portRanges.push(newRange);
+                result.totalLitPorts += (endPort - startPort + 1);
+            }
+        }
+        
+        function validateParsedData(result, cableId) {
+            // Check if lit fiber count matches lit port count
+            if (result.totalLitFibers !== result.totalLitPorts && result.totalLitPorts > 0) {
+                result.hasErrors = true;
+                result.errorMessages += `\nMISMATCH: Cable ${cableId} has ${result.totalLitFibers} lit fibers but ${result.totalLitPorts} lit ports`;
+            }
+        }
+        
+        // =====================================================================
+        // LIGHT SOURCE CABLE DETECTION
+        // =====================================================================
+        function identifyLightSourceCable(cables) {
+            let maxPortCount = 0;
+            let lightSource = null;
+            
+            // First, check if we have an active cabinet in the data
+            const activeCabinet = cabinetData.find(cab => 
+                cab.type === 'ACTIVE' || cab.cabinet_id.startsWith('FAC-')
+            );
+            
+            if (activeCabinet) {
+                // Look for cables connected to the active cabinet's LGX
+                for (let cable of cables) {
+                    if (cable.cable_ct) {
+                        // Check if cable_ct mentions AUGUSTA LGX or similar central facility
+                        if (cable.cable_ct.toUpperCase().includes('AUGUSTA LGX') || 
+                            cable.cable_ct.toUpperCase().includes('LGX')) {
+                            const parsed = parseCableCt(cable.cable_ct, cable.fondid);
+                            if (parsed.totalLitPorts > maxPortCount) {
+                                maxPortCount = parsed.totalLitPorts;
+                                lightSource = cable.fondid;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If not found by LGX reference, use cable with most ports
+            if (!lightSource) {
+                for (let cable of cables) {
+                    if (cable.cable_ct) {
+                        const parsed = parseCableCt(cable.cable_ct, cable.fondid);
+                        if (parsed.totalLitPorts > maxPortCount) {
+                            maxPortCount = parsed.totalLitPorts;
+                            lightSource = cable.fondid;
+                        }
+                    }
+                }
+            }
+            
+            // If still not found, use FEEDER with highest capacity
+            if (!lightSource) {
+                let maxCapacity = 0;
+                for (let cable of cables) {
+                    if (cable.cable_type === 'FEEDER' && parseInt(cable.size) > maxCapacity) {
+                        maxCapacity = parseInt(cable.size);
+                        lightSource = cable.fondid;
+                    }
+                }
+            }
+            
+            console.log('Light source cable identified:', lightSource, 'with', maxPortCount, 'ports');
+            return lightSource;
+        }
+        
+        // =====================================================================
+        // PROCESS NETWORK DATA
+        // =====================================================================
+        function processData() {
+            console.log('Processing network data...');
+            
+            // Collect data from all grids
+            cableData = collectGridData('cable');
+            spliceData = collectGridData('splice');
+            cabinetData = collectGridData('cabinet');
+            mstData = collectGridData('mst');
+            lgxData = collectGridData('lgx');
+            
+            if (cableData.length === 0) {
+                showNotification('No Data', 'Please enter cable data before processing', 'warning');
+                return;
+            }
+            
+            // Save state for undo
+            saveHistoryState();
+            
+            // Reset processing state
+            parsingErrors = [];
+            processedConnections = [];
+            cableMap = {};
+            deadFiberMap = {};
+            
+            // Identify light source cable
+            lightSourceCable = identifyLightSourceCable(cableData);
+            
+            // Show GEM status
+            if (lightSourceCable) {
+                document.getElementById('gemStatus').classList.add('show');
+                document.getElementById('gemDetails').textContent = `Light source: ${lightSourceCable}`;
+            }
+            
+            // Build cable map
+            cableMap = mapCablesToPorts(cableData);
+            
+            // Process connections
+            processedConnections = processActiveConnections(cableData);
+            
+            // Store processed network
+            window.processedNetwork = {
+                cables: cableData,
+                splices: spliceData,
+                cabinets: cabinetData,
+                msts: mstData,
+                lgx: lgxData,
+                connections: processedConnections,
+                lightSource: lightSourceCable,
+                deadFibers: deadFiberMap
+            };
+            
+            console.log('Network processed:', window.processedNetwork);
+            
+            // Process service locations from LGX data
+            if (lgxData.length > 0) {
+                processLGXData();
+            }
+            
+            // Switch to map view
+            switchTab('map');
+            
+            // Render network on map after a longer delay to ensure everything is loaded
+            setTimeout(() => {
+                if (typeof L !== 'undefined') {
+                    renderNetworkOnMap();
+                } else {
+                    console.error('Leaflet still not loaded!');
+                    showNotification('Map Error', 'Map library not loaded. Please refresh and try again.', 'error');
+                }
+            }, 500);
+            
+            showNotification('Processing Complete', `Processed ${cableData.length} cables with ${processedConnections.length} connections`, 'success');
+        }
+        
+        function collectGridData(gridType) {
+            const data = [];
+            const tbody = document.getElementById(`${gridType}GridBody`);
+            if (!tbody) return data;
+            
+            const rows = tbody.children;
+            for (let row of rows) {
+                const rowData = {};
+                const inputs = row.querySelectorAll('.grid-input');
+                let hasData = false;
+                
+                inputs.forEach(input => {
+                    const field = input.getAttribute('data-field');
+                    const value = input.value.trim();
+                    if (value) hasData = true;
+                    rowData[field] = value;
+                });
+                
+                if (hasData) data.push(rowData);
+            }
+            
+            return data;
+        }
+        
+        function restoreGrid(gridType, data) {
+            // Clear grid
+            const tbody = document.getElementById(`${gridType}GridBody`);
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            // Add rows and fill data
+            data.forEach((rowData, index) => {
+                // Add row based on type
+                if (gridType === 'cable') addCableRows(1);
+                else if (gridType === 'splice') addSpliceRows(1);
+                else if (gridType === 'cabinet') addCabinetRows(1);
+                else if (gridType === 'mst') addMSTRows(1);
+                else if (gridType === 'lgx') addLGXRows(1);
+                
+                // Fill data
+                const row = tbody.children[index];
+                if (row) {
+                    Object.keys(rowData).forEach(field => {
+                        const input = row.querySelector(`[data-field="${field}"]`);
+                        if (input) input.value = rowData[field];
+                    });
+                }
+            });
+            
+            // Update row counts
+            if (gridType === 'cable') updateCableRowCount();
+            else if (gridType === 'splice') updateSpliceRowCount();
+        }
+        
+        function saveProject() {
+            const projectData = {
+                version: '1.0',
+                timestamp: new Date().toISOString(),
+                data: {
+                    cables: collectGridData('cable'),
+                    splices: collectGridData('splice'),
+                    cabinets: collectGridData('cabinet'),
+                    msts: collectGridData('mst'),
+                    lgx: collectGridData('lgx')
+                },
+                metadata: {
+                    lightSource: lightSourceCable,
+                    processedConnections: processedConnections
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Phoenix_Fiber_Project_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Project Saved', 'Project data saved to file', 'success');
+        }
+        
+        function mapCablesToPorts(cables) {
+            const map = {};
+            const deadFibers = {};
+            
+            for (let cable of cables) {
+                if (!cable.cable_ct) continue;
+                
+                const parsedData = parseCableCt(cable.cable_ct, cable.fondid);
+                
+                // Track dead fibers
+                deadFibers[cable.fondid] = parsedData.fiberRanges.filter(r => r.isDeadFiber);
+                
+                // Map ports if not light source
+                if (cable.fondid !== lightSourceCable) {
+                    for (let i = 0; i < parsedData.fiberRanges.length; i++) {
+                        const fiberRange = parsedData.fiberRanges[i];
+                        if (!fiberRange.isDeadFiber && i < parsedData.portRanges.length) {
+                            const portRange = parsedData.portRanges[i];
+                            
+                            const fiberCount = fiberRange.endFiber - fiberRange.startFiber + 1;
+                            const portCount = portRange.endPort - portRange.startPort + 1;
+                            
+                            for (let k = 0; k < Math.min(fiberCount, portCount); k++) {
+                                const fiber = fiberRange.startFiber + k;
+                                const port = portRange.startPort + k;
+                                
+                                map[`${port}_${fiberRange.tierDesignation}`] = {
+                                    cable: cable.fondid,
+                                    fiber: fiber,
+                                    tier: fiberRange.tierDesignation
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            deadFiberMap = deadFibers;
+            return map;
+        }
+        
+        function processActiveConnections(cables) {
+            const connections = [];
+            
+            for (let cable of cables) {
+                if (!cable.cable_ct || cable.fondid === lightSourceCable) continue;
+                
+                const parsedData = parseCableCt(cable.cable_ct, cable.fondid);
+                
+                for (let i = 0; i < parsedData.fiberRanges.length; i++) {
+                    const fiberRange = parsedData.fiberRanges[i];
+                    if (!fiberRange.isDeadFiber && i < parsedData.portRanges.length) {
+                        const portRange = parsedData.portRanges[i];
+                        
+                        for (let k = 0; k <= Math.min(fiberRange.endFiber - fiberRange.startFiber, portRange.endPort - portRange.startPort); k++) {
+                            const fiberIn = fiberRange.startFiber + k;
+                            const port = portRange.startPort + k;
+                            
+                            // Find connected cable
+                            const key = `${port}_${fiberRange.tierDesignation}`;
+                            const mapped = cableMap[key];
+                            
+                            if (mapped && mapped.cable !== cable.fondid) {
+                                connections.push({
+                                    cableIn: cable.fondid,
+                                    fiberIn: fiberIn,
+                                    cableOut: mapped.cable,
+                                    fiberOut: mapped.fiber,
+                                    port: port,
+                                    tier: fiberRange.tierDesignation,
+                                    type: 'SPLICE'
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return connections;
+        }
+        
+        // =====================================================================
+        // MAP FUNCTIONS
+        // =====================================================================
+        function initializeMap() {
+            if (map) return;
+            
+            // Check if Leaflet is available
+            if (typeof L === 'undefined') {
+                console.error('Leaflet is not loaded!');
+                showNotification('Map Error', 'Map library failed to load. Please refresh the page.', 'error');
+                return;
+            }
+            
+            console.log('Initializing map...');
+            
+            try {
+                // Create map centered on Augusta County, Virginia
+                map = L.map('networkMap').setView([38.325, -79.075], 13);
+                
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+                
+                // Initialize marker cluster group
+                networkLayers.customerCluster = L.markerClusterGroup({
+                    maxClusterRadius: 40,
+                    iconCreateFunction: function(cluster) {
+                        const count = cluster.getChildCount();
+                        return L.divIcon({
+                            html: `<div style="background: var(--success); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">${count}</div>`,
+                            className: 'customer-cluster-icon',
+                            iconSize: [30, 30]
+                        });
+                    }
+                });
+                
+                map.addLayer(networkLayers.customerCluster);
+                
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize map:', error);
+                showNotification('Map Error', 'Failed to initialize map: ' + error.message, 'error');
+            }
+        }
+        
+        function renderNetworkOnMap() {
+            if (!map || !window.processedNetwork) return;
+            
+            console.log('Rendering network on map...');
+            
+            // Clear existing layers
+            clearMapLayers();
+            
+            // Update stats
+            updateNetworkStats();
+            
+            // Render cables
+            renderCables();
+            
+            // Render splices
+            renderSplices();
+            
+            // Render cabinets
+            renderCabinets();
+            
+            // Render MSTs
+            renderMSTs();
+            
+            // Render service locations
+            renderServiceLocations();
+            
+            // Fit map to network bounds
+            zoomToFit();
+        }
+        
+        function clearMapLayers() {
+            // Clear cable layers
+            for (let id in networkLayers.cables) {
+                map.removeLayer(networkLayers.cables[id]);
+            }
+            networkLayers.cables = {};
+            
+            // Clear splice layers
+            for (let id in networkLayers.splices) {
+                map.removeLayer(networkLayers.splices[id]);
+            }
+            networkLayers.splices = {};
+            
+            // Clear other layers
+            for (let id in networkLayers.cabinets) {
+                map.removeLayer(networkLayers.cabinets[id]);
+            }
+            networkLayers.cabinets = {};
+            
+            for (let id in networkLayers.msts) {
+                map.removeLayer(networkLayers.msts[id]);
+            }
+            networkLayers.msts = {};
+            
+            // Clear customer cluster
+            networkLayers.customerCluster.clearLayers();
+        }
+        
+        function renderCables() {
+            const cables = window.processedNetwork.cables;
+            
+            cables.forEach(cable => {
+                if (cable.wkt_geom && cable.wkt_geom.includes('LINESTRING')) {
+                    const coords = parseLineString(cable.wkt_geom);
+                    if (coords.length > 0) {
+                        const color = getCableColor(cable.cable_type);
+                        const weight = cable.fondid === lightSourceCable ? 6 : 4;
+                        
+                        const polyline = L.polyline(coords, {
+                            color: color,
+                            weight: weight,
+                            opacity: 0.8
+                        }).addTo(map);
+                        
+                        // Add popup with splice connection info
+                        const connectedSplices = findConnectedSplices(cable.fondid);
+                        const popupContent = `
+                            <div style="min-width: 250px;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">${cable.fondid}</h4>
+                                <div><strong>Type:</strong> ${cable.cable_type}</div>
+                                <div><strong>Size:</strong> ${cable.size} fibers</div>
+                                <div><strong>Cable Count:</strong> ${cable.cable_ct || 'N/A'}</div>
+                                ${cable.fondid === lightSourceCable ? '<div style="color: var(--warning); font-weight: bold; margin-top: 0.5rem;">⚡ Light Source Cable</div>' : ''}
+                                ${connectedSplices.length > 0 ? `
+                                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                        <strong>Connected Splices:</strong>
+                                        ${connectedSplices.map(s => `<div style="color: var(--text-light); font-size: 0.875rem;">• ${s}</div>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                        polyline.bindPopup(popupContent);
+                        
+                        networkLayers.cables[cable.fondid] = polyline;
+                    }
+                }
+            });
+        }
+        
+        function renderSplices() {
+            const splices = window.processedNetwork.splices;
+            
+            splices.forEach(splice => {
+                if (splice.wkt_geom && splice.wkt_geom.includes('POINT')) {
+                    const coords = parsePoint(splice.wkt_geom);
+                    if (coords) {
+                        const marker = L.circleMarker(coords, {
+                            radius: 8,
+                            fillColor: 'var(--primary)',
+                            color: 'white',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map);
+                        
+                        const popupContent = `
+                            <div style="min-width: 200px;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">${splice.fondid}</h4>
+                                <div><strong>FDA:</strong> ${splice.fda}</div>
+                                <div><strong>FSA:</strong> ${splice.fsa}</div>
+                                <div><strong>Placement:</strong> ${splice.placement}</div>
+                                <div><strong>Spec:</strong> ${splice.spec}</div>
+                            </div>
+                        `;
+                        marker.bindPopup(popupContent);
+                        
+                        networkLayers.splices[splice.fondid] = marker;
+                    }
+                }
+            });
+        }
+        
+        function renderCabinets() {
+            const cabinets = window.processedNetwork.cabinets;
+            
+            cabinets.forEach(cabinet => {
+                if (cabinet.wkt_geom && cabinet.wkt_geom.includes('POINT')) {
+                    const coords = parsePoint(cabinet.wkt_geom);
+                    if (coords) {
+                        // Determine cabinet type from naming convention or type field
+                        const isActive = cabinet.type === 'ACTIVE' || 
+                                       cabinet.cabinet_id.startsWith('FAC-') ||
+                                       cabinet.spec === 'FAC-3200';
+                        
+                        const color = isActive ? '#ef4444' : '#f59e0b';
+                        const label = isActive ? 'A' : 'P';
+                        
+                        const icon = L.divIcon({
+                            html: `<div style="background: ${color}; color: white; width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${label}</div>`,
+                            className: 'cabinet-icon',
+                            iconSize: [32, 32]
+                        });
+                        
+                        const marker = L.marker(coords, { icon }).addTo(map);
+                        
+                        const popupContent = `
+                            <div style="min-width: 200px;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: ${color};">${cabinet.cabinet_id}</h4>
+                                <div><strong>Type:</strong> ${isActive ? 'ACTIVE' : 'PASSIVE'} CABINET</div>
+                                <div><strong>FSA:</strong> ${cabinet.fsa}</div>
+                                <div><strong>FDA:</strong> ${cabinet.fda}</div>
+                                ${cabinet.cab_size ? `<div><strong>Size:</strong> ${cabinet.cab_size} ports</div>` : ''}
+                                ${cabinet.spec ? `<div><strong>Spec:</strong> ${cabinet.spec}</div>` : ''}
+                            </div>
+                        `;
+                        marker.bindPopup(popupContent);
+                        
+                        networkLayers.cabinets[cabinet.cabinet_id] = marker;
+                    }
+                }
+            });
+        }
+        
+        function renderMSTs() {
+            const msts = window.processedNetwork.msts;
+            
+            msts.forEach(mst => {
+                if (mst.wkt_geom && mst.wkt_geom.includes('POINT')) {
+                    const coords = parsePoint(mst.wkt_geom);
+                    if (coords) {
+                        const marker = L.circleMarker(coords, {
+                            radius: 6,
+                            fillColor: '#3b82f6',
+                            color: 'white',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map);
+                        
+                        const popupContent = `
+                            <div style="min-width: 200px;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: var(--info);">${mst.mst_id}</h4>
+                                <div><strong>Ports:</strong> ${mst.ports}</div>
+                                <div><strong>FDA:</strong> ${mst.fda}</div>
+                                ${mst.fsa ? `<div><strong>FSA:</strong> ${mst.fsa}</div>` : ''}
+                                ${mst.spec ? `<div><strong>Spec:</strong> ${mst.spec}</div>` : ''}
+                            </div>
+                        `;
+                        marker.bindPopup(popupContent);
+                        
+                        networkLayers.msts[mst.mst_id] = marker;
+                    }
+                }
+            });
+        }
+        
+        function renderServiceLocations() {
+            const lgxEntries = window.processedNetwork.lgx;
+            const msts = window.processedNetwork.msts;
+            const addressMap = {};
+            
+            // Group by address
+            lgxEntries.forEach(entry => {
+                if (entry.address) {
+                    if (!addressMap[entry.address]) {
+                        addressMap[entry.address] = [];
+                    }
+                    addressMap[entry.address].push(entry);
+                }
+            });
+            
+            // Create markers for unique addresses
+            Object.keys(addressMap).forEach(address => {
+                const entries = addressMap[address];
+                const mstHub = entries[0].mst_hub;
+                
+                // Find MST location
+                const mst = msts.find(m => m.mst_id === mstHub);
+                let lat, lng;
+                
+                if (mst && mst.wkt_geom) {
+                    // Place near MST location with slight offset
+                    const mstCoords = parsePoint(mst.wkt_geom);
+                    if (mstCoords) {
+                        // Add small random offset to avoid overlapping
+                        lat = mstCoords[0] + (Math.random() - 0.5) * 0.002;
+                        lng = mstCoords[1] + (Math.random() - 0.5) * 0.002;
+                    }
+                } else {
+                    // Fallback to general area
+                    lat = 38.325 + (Math.random() - 0.5) * 0.02;
+                    lng = -79.075 + (Math.random() - 0.5) * 0.02;
+                }
+                
+                const hasCustomer = entries.some(e => e.customer_id);
+                const color = hasCustomer ? '#10b981' : '#64748b';
+                
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 4,
+                    fillColor: color,
+                    color: 'white',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+                
+                const popupContent = `
+                    <div style="min-width: 250px;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--text);">${address}</h4>
+                        ${entries.map(e => `
+                            <div style="padding: 0.25rem 0; border-top: 1px solid var(--border);">
+                                <div><strong>Port:</strong> ${e.port} | <strong>Fiber:</strong> ${e.fiber}</div>
+                                <div><strong>MST:</strong> ${e.mst_hub}</div>
+                                ${e.customer_id ? `<div style="color: var(--success);"><strong>Customer:</strong> ${e.customer_id}</div>` : '<div style="color: var(--text-light);">Unassigned</div>'}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                
+                networkLayers.customerCluster.addLayer(marker);
+            });
+        }
+        
+        function getCableColor(type) {
+            const colors = {
+                'FEEDER': '#3b82f6',        // T3 - Blue
+                'DISTRIBUTION': '#10b981',   // T2 - Green
+                'TAIL': '#8b5cf6',          // Generic tail
+                'MST TAIL': '#f59e0b',      // T1_TAIL - Orange
+                'DROP': '#ef4444'           // T1 - Red
+            };
+            return colors[type] || '#6b7280';
+        }
+        
+        function parseLineString(wkt) {
+            const coords = [];
+            const match = wkt.match(/LINESTRING\s*\(\s*(.+)\s*\)/);
+            if (match) {
+                const pairs = match[1].split(',');
+                pairs.forEach(pair => {
+                    const [lng, lat] = pair.trim().split(' ').map(parseFloat);
+                    coords.push([lat, lng]);
+                });
+            }
+            return coords;
+        }
+        
+        function parsePoint(wkt) {
+            const match = wkt.match(/POINT\s*\(\s*(.+)\s*\)/);
+            if (match) {
+                const [lng, lat] = match[1].trim().split(' ').map(parseFloat);
+                return [lat, lng];
+            }
+            return null;
+        }
+        
+        function updateNetworkStats() {
+            const network = window.processedNetwork;
+            
+            document.getElementById('statCables').textContent = network.cables.length;
+            document.getElementById('statSplices').textContent = network.splices.length;
+            document.getElementById('statCabinets').textContent = network.cabinets.length;
+            document.getElementById('statMSTs').textContent = network.msts.length;
+            
+            // Count unique addresses
+            const uniqueAddresses = new Set(network.lgx.map(e => e.address).filter(a => a));
+            document.getElementById('statCustomers').textContent = uniqueAddresses.size;
+            
+            // Update FSA/FDA info
+            const fsaSet = new Set();
+            const fdaSet = new Set();
+            
+            // Collect from all sources
+            [...network.splices, ...network.cabinets, ...network.msts].forEach(item => {
+                if (item.fsa) fsaSet.add(item.fsa);
+                if (item.fda) fdaSet.add(item.fda);
+            });
+            
+            let infoText = '';
+            if (fsaSet.size > 0) {
+                infoText += `FSA: ${Array.from(fsaSet).join(', ')}`;
+            }
+            if (fdaSet.size > 0) {
+                infoText += infoText ? ' | ' : '';
+                infoText += `FDAs: ${Array.from(fdaSet).join(', ')}`;
+            }
+            
+            document.getElementById('fsaInfo').textContent = infoText;
+            
+            // Update light source info
+            if (network.lightSource) {
+                const lightCable = network.cables.find(c => c.fondid === network.lightSource);
+                document.getElementById('lightSourceInfo').textContent = 
+                    `Light Source: ${network.lightSource} (${lightCable?.size || '?'} fibers)`;
+            }
+        }
+        
+        function zoomToFit() {
+            if (!map) return;
+            
+            const bounds = [];
+            
+            // Add cable coordinates
+            for (let id in networkLayers.cables) {
+                bounds.push(...networkLayers.cables[id].getLatLngs());
+            }
+            
+            // Add splice coordinates
+            for (let id in networkLayers.splices) {
+                bounds.push(networkLayers.splices[id].getLatLng());
+            }
+            
+            // Add cabinet coordinates
+            for (let id in networkLayers.cabinets) {
+                bounds.push(networkLayers.cabinets[id].getLatLng());
+            }
+            
+            // Add MST coordinates
+            for (let id in networkLayers.msts) {
+                bounds.push(networkLayers.msts[id].getLatLng());
+            }
+            
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+        
+        // =====================================================================
+        // MAP TOOLS
+        // =====================================================================
+        function setMapTool(tool) {
+            currentMapTool = tool;
+            
+            // Update UI
+            document.querySelectorAll('.map-tool').forEach(t => t.classList.remove('active'));
+            document.getElementById(`${tool}Tool`).classList.add('active');
+            
+            // Show/hide customer trace panel
+            if (tool === 'customerTrace') {
+                document.getElementById('customerTracePanel').classList.add('show');
+            } else {
+                document.getElementById('customerTracePanel').classList.remove('show');
+            }
+        }
+        
+        function traceCustomerPath() {
+            const address = document.getElementById('customerAddressInput').value.trim();
+            if (!address) {
+                showNotification('Error', 'Please enter a customer address', 'error');
+                return;
+            }
+            
+            const network = window.processedNetwork;
+            if (!network) {
+                showNotification('Error', 'No network data loaded', 'error');
+                return;
+            }
+            
+            // Find LGX entry for this address
+            const lgxEntry = network.lgx.find(e => 
+                e.address && e.address.toLowerCase().includes(address.toLowerCase())
+            );
+            
+            if (!lgxEntry) {
+                showNotification('Not Found', 'Customer address not found in LGX panel', 'warning');
+                return;
+            }
+            
+            // Build trace path
+            const path = [];
+            path.push({
+                type: 'customer',
+                id: lgxEntry.address,
+                details: lgxEntry
+            });
+            
+            // Find MST
+            const mst = network.msts.find(m => m.mst_id === lgxEntry.mst_hub);
+            if (mst) {
+                path.push({
+                    type: 'mst',
+                    id: mst.mst_id,
+                    details: mst
+                });
+            }
+            
+            // Find passive cabinet for FDA
+            if (mst && mst.fda) {
+                const passiveCab = network.cabinets.find(c => 
+                    c.type === 'PASSIVE' && c.fda === mst.fda
+                );
+                if (passiveCab) {
+                    path.push({
+                        type: 'cabinet',
+                        subtype: 'passive',
+                        id: passiveCab.cabinet_id,
+                        details: passiveCab
+                    });
+                }
+            }
+            
+            // Find active cabinet
+            const activeCab = network.cabinets.find(c => c.type === 'ACTIVE');
+            if (activeCab) {
+                path.push({
+                    type: 'cabinet',
+                    subtype: 'active',
+                    id: activeCab.cabinet_id,
+                    details: activeCab
+                });
+            }
+            
+            // Show path trace
+            showPathTrace(path);
+            
+            showNotification('Trace Complete', `Found path from ${address} to active cabinet`, 'success');
+        }
+        
+        function showPathTrace(path) {
+            const panel = document.getElementById('pathTracePanel');
+            const content = document.getElementById('pathTraceContent');
+            
+            content.innerHTML = path.map((segment, index) => {
+                let icon = '📍';
+                let title = '';
+                let details = '';
+                
+                switch (segment.type) {
+                    case 'customer':
+                        icon = '🏠';
+                        title = 'Customer Location';
+                        details = `
+                            <div>Address: ${segment.details.address}</div>
+                            <div>Port: ${segment.details.port} | Fiber: ${segment.details.fiber}</div>
+                            ${segment.details.customer_id ? `<div>Customer ID: ${segment.details.customer_id}</div>` : ''}
+                        `;
+                        break;
+                    case 'mst':
+                        icon = '📟';
+                        title = 'MST Hub';
+                        details = `
+                            <div>MST ID: ${segment.id}</div>
+                            <div>Ports: ${segment.details.ports}</div>
+                            <div>FDA: ${segment.details.fda}</div>
+                        `;
+                        break;
+                    case 'cabinet':
+                        icon = segment.subtype === 'active' ? '🔴' : '🟡';
+                        title = `${segment.subtype === 'active' ? 'Active' : 'Passive'} Cabinet`;
+                        details = `
+                            <div>Cabinet ID: ${segment.id}</div>
+                            <div>FSA: ${segment.details.fsa || 'N/A'}</div>
+                            <div>FDA: ${segment.details.fda || 'N/A'}</div>
+                        `;
+                        break;
+                }
+                
+                return `
+                    <div class="path-segment">
+                        <div class="path-segment-header">
+                            <div class="path-segment-icon">${icon}</div>
+                            <div>${title}</div>
+                        </div>
+                        <div style="margin-left: 2rem; font-size: 0.875rem; color: var(--text-light);">
+                            ${details}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            panel.classList.add('show');
+        }
+        
+        function closePathTracePanel() {
+            document.getElementById('pathTracePanel').classList.remove('show');
+        }
+        
+        function setHierarchyView(view) {
+            currentHierarchyView = view;
+            
+            // Update buttons
+            document.querySelectorAll('.hierarchy-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter display based on hierarchy
+            // Implementation would filter network elements based on FSA/FDA
+            showNotification('View Changed', `Showing ${view.toUpperCase()} hierarchy`, 'info');
+        }
+        
+        function showLGXPanel() {
+            const panel = document.getElementById('lgxPanelDisplay');
+            const grid = document.getElementById('lgxPortGrid');
+            
+            // Generate LGX port visualization
+            grid.innerHTML = '';
+            
+            const network = window.processedNetwork;
+            if (!network || !network.lgx) return;
+            
+            // Create port grid (example: 144 ports)
+            for (let i = 1; i <= 144; i++) {
+                const lgxEntry = network.lgx.find(e => parseInt(e.port) === i);
+                const assigned = lgxEntry && lgxEntry.customer_id;
+                
+                const portDiv = document.createElement('div');
+                portDiv.className = `lgx-port ${assigned ? 'assigned' : 'unassigned'}`;
+                portDiv.textContent = i;
+                portDiv.title = lgxEntry ? 
+                    `Port ${i}: ${lgxEntry.address || 'No address'} ${lgxEntry.customer_id ? '(Assigned)' : '(Unassigned)'}` : 
+                    `Port ${i}: Available`;
+                
+                grid.appendChild(portDiv);
+            }
+            
+            panel.classList.add('show');
+        }
+        
+        function closeLGXPanel() {
+            document.getElementById('lgxPanelDisplay').classList.remove('show');
+        }
+        
+        function performNetworkSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const results = document.getElementById('searchResults');
+            
+            if (!query) {
+                results.innerHTML = '';
+                return;
+            }
+            
+            const network = window.processedNetwork;
+            if (!network) return;
+            
+            const matches = [];
+            
+            // Search cables
+            network.cables.forEach(cable => {
+                if (cable.fondid.toLowerCase().includes(query)) {
+                    matches.push({
+                        type: 'cable',
+                        item: cable,
+                        title: cable.fondid,
+                        details: `${cable.cable_type} - ${cable.size} fibers`
+                    });
+                }
+            });
+            
+            // Search splices
+            network.splices.forEach(splice => {
+                if (splice.fondid.toLowerCase().includes(query)) {
+                    matches.push({
+                        type: 'splice',
+                        item: splice,
+                        title: splice.fondid,
+                        details: `FDA: ${splice.fda} - ${splice.spec}`
+                    });
+                }
+            });
+            
+            // Search cabinets
+            network.cabinets.forEach(cabinet => {
+                if (cabinet.cabinet_id.toLowerCase().includes(query)) {
+                    matches.push({
+                        type: 'cabinet',
+                        item: cabinet,
+                        title: cabinet.cabinet_id,
+                        details: `${cabinet.type} - ${cabinet.fda}`
+                    });
+                }
+            });
+            
+            // Search MSTs
+            network.msts.forEach(mst => {
+                if (mst.mst_id.toLowerCase().includes(query)) {
+                    matches.push({
+                        type: 'mst',
+                        item: mst,
+                        title: mst.mst_id,
+                        details: `${mst.ports} ports - ${mst.fda}`
+                    });
+                }
+            });
+            
+            // Search addresses
+            network.lgx.forEach(entry => {
+                if (entry.address && entry.address.toLowerCase().includes(query)) {
+                    matches.push({
+                        type: 'address',
+                        item: entry,
+                        title: entry.address,
+                        details: `Port ${entry.port} - ${entry.mst_hub}`
+                    });
+                }
+            });
+            
+            // Display results
+            results.innerHTML = matches.slice(0, 10).map(match => `
+                <div class="search-result" onclick="focusOnNetworkElement('${match.type}', '${match.title}')">
+                    <div class="search-result-title">${match.title}</div>
+                    <div class="search-result-details">${match.details}</div>
+                </div>
+            `).join('');
+        }
+        
+        function focusOnNetworkElement(type, id) {
+            let layer = null;
+            
+            if (type === 'cable' && networkLayers.cables[id]) {
+                layer = networkLayers.cables[id];
+                // Highlight cable
+                layer.setStyle({ weight: 8, opacity: 1 });
+                setTimeout(() => {
+                    layer.setStyle({ weight: 4, opacity: 0.8 });
+                }, 2000);
+            } else if (type === 'splice') {
+                // Find splice layer by fondid
+                for (let key in networkLayers.splices) {
+                    if (key === id) {
+                        layer = networkLayers.splices[key];
+                        break;
+                    }
+                }
+            } else if (type === 'cabinet' && networkLayers.cabinets[id]) {
+                layer = networkLayers.cabinets[id];
+            } else if (type === 'mst' && networkLayers.msts[id]) {
+                layer = networkLayers.msts[id];
+            }
+            
+            if (layer) {
+                if (layer.getLatLng) {
+                    map.setView(layer.getLatLng(), 16);
+                } else if (layer.getBounds) {
+                    map.fitBounds(layer.getBounds());
+                }
+                
+                // Open popup
+                if (layer.openPopup) {
+                    layer.openPopup();
+                }
+            }
+            
+            showNotification('Search', `Focused on ${type}: ${id}`, 'info');
+        }
+        
+        // =====================================================================
+        // SPLICE DOCUMENTATION GENERATION
+        // =====================================================================
+        function generateSpliceDocuments() {
+            const container = document.getElementById('spliceMatrixContainer');
+            container.innerHTML = '';
+            
+            const network = window.processedNetwork;
+            if (!network || !network.connections) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-light);">No splice data to display. Process network data first.</p>';
+                return;
+            }
+            
+            // Group connections by splice point
+            const spliceGroups = {};
+            
+            network.connections.forEach(conn => {
+                // For now, group by cable pairs
+                const key = `${conn.cableIn}_to_${conn.cableOut}`;
+                if (!spliceGroups[key]) {
+                    spliceGroups[key] = {
+                        cableIn: conn.cableIn,
+                        cableOut: conn.cableOut,
+                        connections: []
+                    };
+                }
+                spliceGroups[key].connections.push(conn);
+            });
+            
+            // Generate splice sheet for each group
+            Object.keys(spliceGroups).forEach((key, index) => {
+                const group = spliceGroups[key];
+                const spliceSheet = createSpliceSheet(group, index + 1);
+                container.appendChild(spliceSheet);
+            });
+        }
+        
+        function createSpliceSheet(spliceGroup, sheetNumber) {
+            const sheet = document.createElement('div');
+            sheet.className = 'splice-sheet-preview';
+            
+            // Get cable details
+            const cableIn = window.processedNetwork.cables.find(c => c.fondid === spliceGroup.cableIn);
+            const cableOut = window.processedNetwork.cables.find(c => c.fondid === spliceGroup.cableOut);
+            
+            // Determine splice point name based on FDAs involved
+            const fdaSet = new Set();
+            if (cableIn) {
+                const cableInSplices = window.processedNetwork.splices.filter(s => 
+                    s.fondid && (cableIn.fondid.includes(s.fondid) || s.fondid.includes(cableIn.fondid))
+                );
+                cableInSplices.forEach(s => { if (s.fda) fdaSet.add(s.fda); });
+            }
+            const fdaArray = Array.from(fdaSet);
+            const spliceName = fdaArray.length > 0 ? 
+                `${fdaArray[0].replace('VAAUGS', 'AUGS-2_FDA_')}_SP_${sheetNumber}` : 
+                `SP_${sheetNumber}`;
+            
+            sheet.innerHTML = `
+                <div class="sheet-header">
+                    <div class="company-info">
+                        <div class="company-logo">🔥 Phoenix Fiber</div>
+                        <div class="document-info">
+                            <div>Document: ${spliceName}</div>
+                            <div>Date: ${new Date().toLocaleDateString()}</div>
+                            <div>FSA: VA-AUGS-02</div>
+                        </div>
+                    </div>
+                    <h2 class="sheet-title">Splice Matrix - ${spliceName}</h2>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">Closure Information</h3>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">
+                            <div>Closure Name: ${spliceName}</div>
+                            <div>County: Augusta</div>
+                            <div>FSA: VA-AUGS-02</div>
+                            <div>FDA: ${fdaArray.join(', ') || 'N/A'}</div>
+                            <div>Spec: X-2</div>
+                            <div>Fiber Burns: ${spliceGroup.connections.length}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">Cable Details</h3>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">
+                            <div><strong>Cable In:</strong> ${spliceGroup.cableIn}</div>
+                            <div>Type: ${cableIn?.cable_type || 'N/A'} | Size: ${cableIn?.size || 'N/A'}</div>
+                            <div style="margin-top: 0.5rem;"><strong>Cable Out:</strong> ${spliceGroup.cableOut}</div>
+                            <div>Type: ${cableOut?.cable_type || 'N/A'} | Size: ${cableOut?.size || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="splice-matrix-table">
+                    <thead>
+                        <tr>
+                            <th>Closure</th>
+                            <th>Cable In</th>
+                            <th>Ribbon In</th>
+                            <th>Fiber In</th>
+                            <th>Type</th>
+                            <th>Port</th>
+                            <th>Fiber Out</th>
+                            <th>Ribbon Out</th>
+                            <th>Cable Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${spliceGroup.connections.map(conn => {
+                            const ribbonIn = getRibbonColor(conn.fiberIn);
+                            const ribbonOut = getRibbonColor(conn.fiberOut);
+                            return `
+                                <tr>
+                                    <td>${spliceName}</td>
+                                    <td>${conn.cableIn}</td>
+                                    <td>${ribbonIn}</td>
+                                    <td>${conn.fiberIn}</td>
+                                    <td>SPLICE</td>
+                                    <td>${conn.port}</td>
+                                    <td>${conn.fiberOut}</td>
+                                    <td>${ribbonOut}</td>
+                                    <td>${conn.cableOut}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div style="font-size: 0.875rem; color: var(--text-light);">
+                        Total Splices: ${spliceGroup.connections.length} | 
+                        Tier: ${spliceGroup.connections[0]?.tier || 'T2'} |
+                        Generated by GEM Fiber Logic
+                    </div>
+                </div>
+            `;
+            
+            return sheet;
+        }
+        
+        function getRibbonColor(fiberNumber) {
+            const colorIndex = (Math.floor((fiberNumber - 1) / 12)) % 12;
+            const colors = ['Blue', 'Orange', 'Green', 'Brown', 'Slate', 'White', 
+                          'Red', 'Black', 'Yellow', 'Violet', 'Rose', 'Aqua'];
+            return colors[colorIndex];
+        }
+        
+        function getFiberColorName(fiberNumber) {
+            const colors = [
+                'Blue', 'Orange', 'Green', 'Brown', 'Slate', 'White',
+                'Red', 'Black', 'Yellow', 'Violet', 'Rose', 'Aqua'
+            ];
+            const position = ((fiberNumber - 1) % 12);
+            return colors[position];
+        }
+        
+        function exportSpliceExcel() {
+            const network = window.processedNetwork;
+            if (!network) {
+                showNotification('Error', 'No network data to export', 'error');
+                return;
+            }
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Add LGX sheet
+            const lgxData = [
+                ['FIBERS', 'PORTS', 'MST HUB', 'ADDRESSES', 'CUSTOMER ID']
+            ];
+            
+            network.lgx.forEach(entry => {
+                lgxData.push([
+                    entry.fiber,
+                    entry.port,
+                    entry.mst_hub,
+                    entry.address || '',
+                    entry.customer_id || ''
+                ]);
+            });
+            
+            const lgxSheet = XLSX.utils.aoa_to_sheet(lgxData);
+            XLSX.utils.book_append_sheet(wb, lgxSheet, 'LGX');
+            
+            // Group connections by splice point
+            const spliceGroups = {};
+            network.connections.forEach(conn => {
+                const key = `${conn.cableIn}_to_${conn.cableOut}`;
+                if (!spliceGroups[key]) {
+                    spliceGroups[key] = {
+                        cableIn: conn.cableIn,
+                        cableOut: conn.cableOut,
+                        connections: []
+                    };
+                }
+                spliceGroups[key].connections.push(conn);
+            });
+            
+            // Add splice sheets
+            Object.keys(spliceGroups).forEach((key, index) => {
+                const group = spliceGroups[key];
+                const sheetName = `SP_${index + 1}`;
+                
+                // Create header rows
+                const spliceData = [
+                    ['Closure Name:', sheetName],
+                    ['County', 'Augusta'],
+                    ['FSA', 'AUGS-2'],
+                    ['FDA', '2.04'],
+                    ['Cable In:', group.cableIn],
+                    ['Cable Out:', group.cableOut],
+                    [],
+                    ['Closure', 'Cable In', 'Fiber In', 'Color', 'Type', 'Port', 'Fiber Out', 'Color', 'Cable Out']
+                ];
+                
+                // Add connection data
+                group.connections.forEach(conn => {
+                    spliceData.push([
+                        sheetName,
+                        conn.cableIn,
+                        conn.fiberIn,
+                        getFiberColorName(conn.fiberIn),
+                        'SPLICE',
+                        conn.port,
+                        conn.fiberOut,
+                        getFiberColorName(conn.fiberOut),
+                        conn.cableOut
+                    ]);
+                });
+                
+                const spliceSheet = XLSX.utils.aoa_to_sheet(spliceData);
+                XLSX.utils.book_append_sheet(wb, spliceSheet, sheetName);
+            });
+            
+            // Add light trace sheet
+            const traceData = [
+                ['Light Trace Path Analysis'],
+                ['Generated:', new Date().toLocaleString()],
+                [],
+                ['From', 'To', 'Connection Type', 'Details']
+            ];
+            
+            // Add trace data
+            if (network.lightSource) {
+                traceData.push(['Light Source', network.lightSource, 'Origin', `${network.cables.find(c => c.fondid === network.lightSource)?.size || 'N/A'} fibers`]);
+            }
+            
+            const traceSheet = XLSX.utils.aoa_to_sheet(traceData);
+            XLSX.utils.book_append_sheet(wb, traceSheet, 'Light_Trace');
+            
+            // Export workbook
+            XLSX.writeFile(wb, `Phoenix_Fiber_Splicing_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            showNotification('Export Complete', 'Splicing documentation exported to Excel', 'success');
+        }
+        
+        function generatePDF() {
+            showNotification('Coming Soon', 'PDF generation will be available in the next update', 'info');
+        }
+        
+        function printSpliceSheets() {
+            window.print();
+        }
+        
+        function validateNetwork() {
+            const network = window.processedNetwork;
+            if (!network) {
+                showNotification('No Data', 'Please process network data first', 'warning');
+                return;
+            }
+            
+            const issues = [];
+            const warnings = [];
+            
+            // Check for unconnected cables
+            const connectedCables = new Set();
+            network.connections.forEach(conn => {
+                connectedCables.add(conn.cableIn);
+                connectedCables.add(conn.cableOut);
+            });
+            
+            network.cables.forEach(cable => {
+                if (!connectedCables.has(cable.fondid) && cable.fondid !== network.lightSource) {
+                    warnings.push(`Cable ${cable.fondid} has no connections`);
+                }
+            });
+            
+            // Validate fiber continuity
+            const fiberMap = {};
+            network.connections.forEach(conn => {
+                // Check if fiber numbers match (1-to-1 mapping)
+                if (conn.fiberIn !== conn.fiberOut) {
+                    warnings.push(`Fiber mismatch at port ${conn.port}: ${conn.cableIn}[${conn.fiberIn}] → ${conn.cableOut}[${conn.fiberOut}]`);
+                }
+                
+                // Track fiber usage
+                const keyIn = `${conn.cableIn}_${conn.fiberIn}`;
+                const keyOut = `${conn.cableOut}_${conn.fiberOut}`;
+                
+                if (fiberMap[keyIn]) {
+                    issues.push(`Duplicate connection on ${conn.cableIn} fiber ${conn.fiberIn}`);
+                }
+                if (fiberMap[keyOut]) {
+                    issues.push(`Duplicate connection on ${conn.cableOut} fiber ${conn.fiberOut}`);
+                }
+                
+                fiberMap[keyIn] = true;
+                fiberMap[keyOut] = true;
+            });
+            
+            // Check tier assignments
+            network.connections.forEach(conn => {
+                const cableIn = network.cables.find(c => c.fondid === conn.cableIn);
+                const cableOut = network.cables.find(c => c.fondid === conn.cableOut);
+                
+                if (cableIn && cableOut) {
+                    // Validate tier progression
+                    if (conn.tier === 'T3' && cableIn.cable_type !== 'FEEDER') {
+                        warnings.push(`T3 connection on non-feeder cable: ${cableIn.fondid}`);
+                    }
+                    if (conn.tier === 'T2' && cableIn.cable_type !== 'DISTRIBUTION') {
+                        warnings.push(`T2 connection on non-distribution cable: ${cableIn.fondid}`);
+                    }
+                }
+            });
+            
+            // Check MST port allocation
+            const mstPortUsage = {};
+            network.lgx.forEach(entry => {
+                if (!mstPortUsage[entry.mst_hub]) {
+                    mstPortUsage[entry.mst_hub] = new Set();
+                }
+                
+                if (mstPortUsage[entry.mst_hub].has(entry.port)) {
+                    issues.push(`Duplicate port assignment on ${entry.mst_hub} port ${entry.port}`);
+                }
+                mstPortUsage[entry.mst_hub].add(entry.port);
+            });
+            
+            // Verify MST capacity
+            network.msts.forEach(mst => {
+                const usedPorts = mstPortUsage[mst.mst_id] ? mstPortUsage[mst.mst_id].size : 0;
+                const capacity = parseInt(mst.ports);
+                
+                if (usedPorts > capacity) {
+                    issues.push(`MST ${mst.mst_id} over capacity: ${usedPorts}/${capacity} ports used`);
+                }
+            });
+            
+            // Check for parsing errors
+            if (parsingErrors.length > 0) {
+                parsingErrors.forEach(error => {
+                    issues.push(`Parsing error in ${error.cableId}: ${error.errors}`);
+                });
+            }
+            
+            // Display validation results
+            const totalIssues = issues.length + warnings.length;
+            
+            if (totalIssues === 0) {
+                showNotification('Validation Passed', 'Network configuration is valid', 'success');
+            } else {
+                console.log('Validation Issues:', issues);
+                console.log('Validation Warnings:', warnings);
+                
+                let message = '';
+                if (issues.length > 0) {
+                    message = `${issues.length} critical issues found`;
+                }
+                if (warnings.length > 0) {
+                    message += (message ? ', ' : '') + `${warnings.length} warnings`;
+                }
+                
+                showNotification('Validation Results', message + '. Check console for details.', 
+                    issues.length > 0 ? 'error' : 'warning');
+            }
+            
+            return { issues, warnings };
+        }
+        
+        function exportKML() {
+            const network = window.processedNetwork;
+            if (!network) {
+                showNotification('No Data', 'Please process network data first', 'warning');
+                return;
+            }
+            
+            let kml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            kml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n';
+            kml += '<Document>\n';
+            kml += '<name>Phoenix Fiber Network</name>\n';
+            
+            // Add styles
+            kml += '<Style id="feederStyle"><LineStyle><color>ff0080ff</color><width>4</width></LineStyle></Style>\n';
+            kml += '<Style id="distributionStyle"><LineStyle><color>ff00ff00</color><width>3</width></LineStyle></Style>\n';
+            kml += '<Style id="tailStyle"><LineStyle><color>ffff00ff</color><width>2</width></LineStyle></Style>\n';
+            
+            // Add cables
+            network.cables.forEach(cable => {
+                if (cable.wkt_geom) {
+                    const coords = parseLineStringForKML(cable.wkt_geom);
+                    if (coords) {
+                        kml += '<Placemark>\n';
+                        kml += `<name>${cable.fondid}</name>\n`;
+                        kml += `<description>Type: ${cable.cable_type}, Size: ${cable.size}</description>\n`;
+                        kml += `<styleUrl>#${cable.cable_type.toLowerCase()}Style</styleUrl>\n`;
+                        kml += '<LineString>\n';
+                        kml += `<coordinates>${coords}</coordinates>\n`;
+                        kml += '</LineString>\n';
+                        kml += '</Placemark>\n';
+                    }
+                }
+            });
+            
+            kml += '</Document>\n</kml>';
+            
+            // Download KML
+            const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Phoenix_Fiber_Network_${new Date().toISOString().split('T')[0]}.kml`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Export Complete', 'Network exported to KML', 'success');
+        }
+        
+        function parseLineStringForKML(wkt) {
+            const match = wkt.match(/LINESTRING\s*\(\s*(.+)\s*\)/);
+            if (match) {
+                const pairs = match[1].split(',');
+                return pairs.map(pair => {
+                    const [lng, lat] = pair.trim().split(' ');
+                    return `${lng},${lat},0`;
+                }).join(' ');
+            }
+            return null;
+        }
+        
+        function importLGXFromExcel() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.xlsx,.xls';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Find LGX sheet
+                        const lgxSheetName = workbook.SheetNames.find(name => 
+                            name.toUpperCase().includes('LGX')
+                        );
+                        
+                        if (!lgxSheetName) {
+                            showNotification('Error', 'No LGX sheet found in Excel file', 'error');
+                            return;
+                        }
+                        
+                        const sheet = workbook.Sheets[lgxSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(sheet);
+                        
+                        // Clear existing LGX data
+                        clearLGXGrid();
+                        
+                        // Import data
+                        jsonData.forEach((row, index) => {
+                            if (index === 0) return; // Skip header if present
+                            
+                            addLGXRows(1);
+                            const gridRow = document.getElementById('lgxGridBody').lastElementChild;
+                            
+                            // Map Excel columns to grid fields
+                            if (row['FIBERS'] !== undefined) gridRow.querySelector('[data-field="fiber"]').value = row['FIBERS'];
+                            if (row['PORTS'] !== undefined) gridRow.querySelector('[data-field="port"]').value = row['PORTS'];
+                            if (row['MST HUB'] !== undefined) gridRow.querySelector('[data-field="mst_hub"]').value = row['MST HUB'];
+                            if (row['ADDRESSES'] !== undefined) gridRow.querySelector('[data-field="address"]').value = row['ADDRESSES'];
+                            if (row['CUSTOMER ID'] !== undefined) gridRow.querySelector('[data-field="customer_id"]').value = row['CUSTOMER ID'];
+                        });
+                        
+                        showNotification('Import Success', `Imported ${jsonData.length} LGX entries`, 'success');
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        showNotification('Import Failed', 'Error reading Excel file', 'error');
+                    }
+                };
+                
+                reader.readAsArrayBuffer(file);
+            };
+            
+            input.click();
+        }
+        
+        // =====================================================================
+        // PASTE HANDLING
+        // =====================================================================
+        document.addEventListener('paste', function(e) {
+            const activeElement = document.activeElement;
+            if (!activeElement || !activeElement.classList.contains('grid-input')) return;
+            
+            e.preventDefault();
+            
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedData = clipboardData.getData('text');
+            
+            // Check if it's multi-line data (from Excel/spreadsheet)
+            if (pastedData.includes('\n') || pastedData.includes('\t')) {
+                handleSpreadsheetPaste(activeElement, pastedData);
+            } else {
+                // Single cell paste
+                activeElement.value = pastedData.trim();
+                activeElement.dispatchEvent(new Event('input'));
+            }
+        });
+        
+        function handleSpreadsheetPaste(startCell, data) {
+            const rows = data.split('\n').filter(row => row.trim());
+            const startRow = startCell.closest('tr');
+            const tbody = startRow.parentElement;
+            const fieldName = startCell.getAttribute('data-field');
+            
+            // Find starting position
+            const allRows = Array.from(tbody.children);
+            const startRowIndex = allRows.indexOf(startRow);
+            const allInputs = Array.from(startRow.querySelectorAll('.grid-input'));
+            const startColIndex = allInputs.findIndex(input => input === startCell);
+            
+            // Paste data
+            rows.forEach((rowData, rowOffset) => {
+                const targetRowIndex = startRowIndex + rowOffset;
+                
+                // Add new rows if needed
+                while (tbody.children.length <= targetRowIndex) {
+                    const gridType = tbody.id.replace('GridBody', '');
+                    if (gridType === 'cable') addCableRows(1);
+                    else if (gridType === 'splice') addSpliceRows(1);
+                    else if (gridType === 'cabinet') addCabinetRows(1);
+                    else if (gridType === 'mst') addMSTRows(1);
+                    else if (gridType === 'lgx') addLGXRows(1);
+                }
+                
+                const targetRow = tbody.children[targetRowIndex];
+                const cells = rowData.split('\t');
+                const rowInputs = targetRow.querySelectorAll('.grid-input');
+                
+                cells.forEach((cellData, colOffset) => {
+                    const targetColIndex = startColIndex + colOffset;
+                    if (targetColIndex < rowInputs.length) {
+                        rowInputs[targetColIndex].value = cellData.trim();
+                        rowInputs[targetColIndex].dispatchEvent(new Event('input'));
+                    }
+                });
+            });
+            
+            showNotification('Data Pasted', `Pasted ${rows.length} rows of data`, 'success');
+        }
+        
+        // =====================================================================
+        // UTILIZATION DASHBOARD
+        // =====================================================================
+        function generateUtilizationDashboard() {
+            const network = window.processedNetwork;
+            if (!network) {
+                document.getElementById('utilizationDashboard').style.display = 'none';
+                document.getElementById('noDataMessage').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('utilizationDashboard').style.display = 'block';
+            document.getElementById('noDataMessage').style.display = 'none';
+            
+            // Calculate utilization metrics
+            const metrics = calculateUtilizationMetrics(network);
+            
+            // Update network summary
+            const summaryHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                    <span>Total Fiber Count:</span>
+                    <strong>${metrics.totalFibers}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                    <span>Lit Fibers:</span>
+                    <strong style="color: var(--success);">${metrics.litFibers}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                    <span>Dark Fibers:</span>
+                    <strong style="color: var(--text-light);">${metrics.darkFibers}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 1rem;">
+                    <span>Overall Utilization:</span>
+                    <strong style="color: var(--primary);">${metrics.utilizationPercent.toFixed(1)}%</strong>
+                </div>
+            `;
+            document.getElementById('networkSummary').innerHTML = summaryHtml;
+            
+            // Update fiber type utilization
+            const typeHtml = Object.keys(metrics.byType).map(type => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                    <span>${type}:</span>
+                    <div>
+                        <strong>${metrics.byType[type].lit}/${metrics.byType[type].total}</strong>
+                        <span style="color: var(--text-light); margin-left: 0.5rem;">
+                            (${((metrics.byType[type].lit / metrics.byType[type].total) * 100).toFixed(1)}%)
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('fiberTypeUtilization').innerHTML = typeHtml;
+            
+            // Build FDA utilization table
+            const fdaTable = buildFDAUtilizationTable(metrics.byFDA);
+            document.getElementById('fdaUtilization').innerHTML = fdaTable;
+            
+            // Build cable detail table
+            const cableTable = buildCableUtilizationTable(network, metrics.byCable);
+            document.getElementById('cableUtilizationTable').innerHTML = cableTable;
+            
+            // Populate FDA filter
+            const fdaFilter = document.getElementById('fdaFilter');
+            fdaFilter.innerHTML = '<option value="">All FDAs</option>';
+            Object.keys(metrics.byFDA).forEach(fda => {
+                fdaFilter.innerHTML += `<option value="${fda}">${fda}</option>`;
+            });
+        }
+        
+        function calculateUtilizationMetrics(network) {
+            const metrics = {
+                totalFibers: 0,
+                litFibers: 0,
+                darkFibers: 0,
+                utilizationPercent: 0,
+                byType: {},
+                byFDA: {},
+                byCable: {}
+            };
+            
+            // Process each cable
+            network.cables.forEach(cable => {
+                const cableSize = parseInt(cable.size) || 0;
+                metrics.totalFibers += cableSize;
+                
+                // Parse cable_ct to determine lit/dark fibers
+                let litCount = 0;
+                let darkCount = 0;
+                
+                if (cable.cable_ct) {
+                    const parsed = parseCableCt(cable.cable_ct, cable.fondid);
+                    
+                    parsed.fiberRanges.forEach(range => {
+                        const count = range.endFiber - range.startFiber + 1;
+                        if (range.isDeadFiber) {
+                            darkCount += count;
+                        } else {
+                            litCount += count;
+                        }
+                    });
+                } else {
+                    // If no cable_ct, assume all dark
+                    darkCount = cableSize;
+                }
+                
+                metrics.litFibers += litCount;
+                metrics.darkFibers += darkCount;
+                
+                // Store cable metrics
+                metrics.byCable[cable.fondid] = {
+                    type: cable.cable_type,
+                    size: cableSize,
+                    lit: litCount,
+                    dark: darkCount,
+                    utilization: cableSize > 0 ? (litCount / cableSize) * 100 : 0
+                };
+                
+                // Aggregate by type
+                if (!metrics.byType[cable.cable_type]) {
+                    metrics.byType[cable.cable_type] = { total: 0, lit: 0, dark: 0 };
+                }
+                metrics.byType[cable.cable_type].total += cableSize;
+                metrics.byType[cable.cable_type].lit += litCount;
+                metrics.byType[cable.cable_type].dark += darkCount;
+                
+                // Determine FDA from cable naming or connections
+                let fda = 'Unknown';
+                
+                // Try to extract FDA from cable fondid
+                const fdaMatch = cable.fondid.match(/FDA[_-]?(\d+)/i);
+                if (fdaMatch) {
+                    fda = `VAAUGS0${fdaMatch[1].padStart(3, '0')}`;
+                } else {
+                    // Look for connected splice/cabinet FDA
+                    const connectedSplice = network.splices.find(s => 
+                        cable.fondid.includes(s.fondid) || s.fondid.includes(cable.fondid)
+                    );
+                    if (connectedSplice && connectedSplice.fda) {
+                        fda = connectedSplice.fda;
+                    }
+                }
+                
+                // Aggregate by FDA
+                if (!metrics.byFDA[fda]) {
+                    metrics.byFDA[fda] = { total: 0, lit: 0, dark: 0, cables: [] };
+                }
+                metrics.byFDA[fda].total += cableSize;
+                metrics.byFDA[fda].lit += litCount;
+                metrics.byFDA[fda].dark += darkCount;
+                metrics.byFDA[fda].cables.push(cable.fondid);
+            });
+            
+            // Calculate overall utilization
+            if (metrics.totalFibers > 0) {
+                metrics.utilizationPercent = (metrics.litFibers / metrics.totalFibers) * 100;
+            }
+            
+            return metrics;
+        }
+        
+        function buildFDAUtilizationTable(fdaData) {
+            let html = `
+                <table class="data-grid" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>FDA</th>
+                            <th>Total Fibers</th>
+                            <th>Lit</th>
+                            <th>Dark</th>
+                            <th>Utilization</th>
+                            <th>Cable Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            Object.keys(fdaData).sort().forEach(fda => {
+                const data = fdaData[fda];
+                const utilization = data.total > 0 ? (data.lit / data.total) * 100 : 0;
+                
+                html += `
+                    <tr>
+                        <td style="padding: 0.5rem; font-weight: 600;">${fda}</td>
+                        <td style="padding: 0.5rem; text-align: center;">${data.total}</td>
+                        <td style="padding: 0.5rem; text-align: center; color: var(--success);">${data.lit}</td>
+                        <td style="padding: 0.5rem; text-align: center; color: var(--text-light);">${data.dark}</td>
+                        <td style="padding: 0.5rem; text-align: center;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="flex: 1; height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${utilization}%; height: 100%; background: var(--primary);"></div>
+                                </div>
+                                <span style="font-weight: 600; min-width: 45px;">${utilization.toFixed(1)}%</span>
+                            </div>
+                        </td>
+                        <td style="padding: 0.5rem; text-align: center;">${data.cables.length}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+        
+        function buildCableUtilizationTable(network, cableMetrics) {
+            let html = `
+                <table class="data-grid" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Cable ID</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Lit</th>
+                            <th>Dark</th>
+                            <th>Utilization</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cableTableBody">
+            `;
+            
+            Object.keys(cableMetrics).forEach(cableId => {
+                const data = cableMetrics[cableId];
+                const isLightSource = cableId === network.lightSource;
+                
+                html += `
+                    <tr class="cable-row" data-cable="${cableId}">
+                        <td style="padding: 0.5rem; font-weight: 600;">
+                            ${cableId}
+                            ${isLightSource ? '<span style="color: var(--warning); margin-left: 0.5rem;">⚡</span>' : ''}
+                        </td>
+                        <td style="padding: 0.5rem;">${data.type}</td>
+                        <td style="padding: 0.5rem; text-align: center;">${data.size}</td>
+                        <td style="padding: 0.5rem; text-align: center; color: var(--success);">${data.lit}</td>
+                        <td style="padding: 0.5rem; text-align: center; color: var(--text-light);">${data.dark}</td>
+                        <td style="padding: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="flex: 1; height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${data.utilization}%; height: 100%; background: ${getUtilizationColor(data.utilization)};"></div>
+                                </div>
+                                <span style="font-weight: 600; min-width: 45px;">${data.utilization.toFixed(1)}%</span>
+                            </div>
+                        </td>
+                        <td style="padding: 0.5rem; text-align: center;">
+                            ${getUtilizationStatus(data.utilization)}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+        
+        function getUtilizationColor(percent) {
+            if (percent >= 80) return '#ef4444';  // Red - High
+            if (percent >= 50) return '#f59e0b';  // Orange - Medium
+            return '#10b981';  // Green - Low
+        }
+        
+        function getUtilizationStatus(percent) {
+            if (percent >= 80) {
+                return '<span style="color: var(--error); font-weight: 600;">High</span>';
+            }
+            if (percent >= 50) {
+                return '<span style="color: var(--warning); font-weight: 600;">Medium</span>';
+            }
+            return '<span style="color: var(--success); font-weight: 600;">Low</span>';
+        }
+        
+        function filterUtilizationTable() {
+            const filterValue = document.getElementById('fdaFilter').value;
+            const rows = document.querySelectorAll('#cableTableBody .cable-row');
+            
+            // This would need to be enhanced to actually filter by FDA
+            // For now, just show all rows
+            rows.forEach(row => {
+                row.style.display = '';
+            });
+        }
+        
+        console.log('Phoenix Fiber initialized successfully');
+    </script>
+</body>
+</html>
+    </script>
+</body>
+</html>
